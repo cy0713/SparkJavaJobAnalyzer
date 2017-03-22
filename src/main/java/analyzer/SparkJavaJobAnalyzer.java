@@ -83,7 +83,7 @@ public class SparkJavaJobAnalyzer {
         
         //Here, we need the intelligence to know what to pushdown 
         IPushableTransformation pushdownLambdaRule = null;        
-        List<String> lambdasToMigrate = new ArrayList<>();
+        List<Tuple2<String, String>> lambdasToMigrate = new ArrayList<>();
         for (String key: identifiedStreams.keySet()){
         	for (GraphNode node: identifiedStreams.get(key)){   		
         		
@@ -101,7 +101,7 @@ public class SparkJavaJobAnalyzer {
 					System.err.println("No migration rule for lambda: " + functionName);
 				}
     			if (executionResult!=null) 
-    				lambdasToMigrate.add(executionResult);        		
+    				lambdasToMigrate.add(new Tuple2<String, String>(executionResult, node.getFunctionType()));        		
         	}
         }      
         
@@ -275,13 +275,16 @@ public class SparkJavaJobAnalyzer {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private String encodeResponse(List<String> lambdasToMigrate, CompilationUnit cu) {
+	private String encodeResponse(List<Tuple2<String, String>> lambdasToMigrate, CompilationUnit cu) {
 		JSONObject obj = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
 		
-		for (String lambda: lambdasToMigrate){
+		for (Tuple2<String, String> lambda: lambdasToMigrate){
 			System.out.println(lambda);
-			jsonArray.add(lambda); 
+			JSONObject lambdaObj = new JSONObject();
+			lambdaObj.put("lambda-body", lambda._1());
+			lambdaObj.put("lambda-type", lambda._2());
+			jsonArray.add(lambdaObj); 
 		}
 		//Separator between lambdas and the job source code
 		obj.put("job-code", cu.toString());		

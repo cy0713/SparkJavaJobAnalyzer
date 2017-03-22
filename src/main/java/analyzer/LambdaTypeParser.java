@@ -82,9 +82,12 @@ public class LambdaTypeParser {
 				inferredArgument = nextNodeArguments.get(0);
 				//System.out.println("Inferred first argument from previous lambda: " + inferredArgument);	
 				inferredArgument = checkArgument(inferredArgument, node);
-				if (lambdaMethod.equals("flatMap")) 
-					inferredArgument = "? extends Stream<"+inferredArgument.substring(
-							inferredArgument.lastIndexOf(" ")+1)+">";
+				if (lambdaMethod.equals("flatMap")) {
+					inferredArgument = inferredArgument.replace("? super ", "").replace("? extends ", "");
+					//int endArgumentIndex = Math.max(inferredArgument.lastIndexOf(" "), 
+					//		inferredArgument.lastIndexOf(">"));
+					inferredArgument = "? extends Stream<"+inferredArgument.substring(0)+">";
+				}
 				if (arguments.size() > 1) arguments.remove(arguments.size()-1);
 				arguments.add(inferredArgument);
 			}		
