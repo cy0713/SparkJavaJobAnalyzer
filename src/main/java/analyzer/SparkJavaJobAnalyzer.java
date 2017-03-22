@@ -123,8 +123,10 @@ public class SparkJavaJobAnalyzer {
 			//If the type is correctly set, go ahead
 			if (lambdaTypeParser.isTypeWellDefined()) continue;
 			//Otherwise, we have to check how to infer it
-		}
-			
+			//System.out.println("We have to infer arguments for: " + node.toString());
+			node.setFunctionType(lambdaTypeParser.solveTypeFromGraph(node));		
+			System.out.println(node.getFunctionType());
+		}			
 	}
 
 	/**
@@ -142,8 +144,6 @@ public class SparkJavaJobAnalyzer {
 			Matcher matcher = datasetsPattern.matcher(declarator.getType().toString());
 	     	if (matcher.find()){
 	     		String streamVariable = declarator.getChildNodes().get(0).toString();
-	     		System.out.println("Adding variable to CFG: " +
-	     				declarator.getType().toString() + " " + streamVariable);
 	     		identifiedStreams.put(streamVariable, new FlowControlGraph(streamVariable));
 	     	}	 
 			return declarator;
@@ -196,7 +196,7 @@ public class SparkJavaJobAnalyzer {
 				methodExpression.accept(new LambdaExtractor(), lambdas);
 				expressionString = methodExpression.toString();
 			}			
-			
+			//Parsed lambdas contain the <lambdaSignature, lambdaType>
 			List<Tuple2<String, String>> parsedLambdas = new ArrayList<>();
 			
 			//Get the entire lambda functions that can be offloaded

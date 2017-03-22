@@ -25,9 +25,11 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 		toAdd.setTransformation(transformation);
 		toAdd.setToExecute(operation);
 		if (root==null) {
-			root = lastNode = toAdd;
+			toAdd.setPreviousNode(toAdd);
+			toAdd.setNextNode(toAdd);
 		}else{
 			lastNode.setNextNode(toAdd);
+			toAdd.setPreviousNode(lastNode);
 			lastNode = toAdd;
 		}
 	}
@@ -47,6 +49,7 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 			root = lastNode = toAdd;
 		}else{
 			lastNode.setNextNode(toAdd);
+			toAdd.setPreviousNode(lastNode);
 			lastNode = toAdd;
 		}
 	}

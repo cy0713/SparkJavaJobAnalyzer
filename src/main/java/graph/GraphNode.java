@@ -11,6 +11,8 @@ public class GraphNode {
 	
 	private GraphNode nextNode;
 	
+	private GraphNode previousNode;
+	
 	
 	/*Access methods*/
 
@@ -48,5 +50,21 @@ public class GraphNode {
 
 	public void setFunctionType(String functionType) {
 		this.functionType = functionType;
+	}
+
+	public GraphNode getPreviousNode() {
+		return previousNode;
+	}
+
+	public void setPreviousNode(GraphNode previousNode) {
+		this.previousNode = previousNode;
+	}
+
+	@Override
+	public String toString() {
+		return "GraphNode [transformation=" + transformation + ", toExecute=" + toExecute + ", functionType="
+				+ functionType + ", nextNode=" + nextNode + "]";
 	}	
+	
+	
 }
