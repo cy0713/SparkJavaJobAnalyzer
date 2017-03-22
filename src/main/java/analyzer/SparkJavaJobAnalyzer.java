@@ -1,5 +1,6 @@
 package main.java.analyzer;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -22,7 +23,13 @@ import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
+import com.github.javaparser.symbolsolver.model.typesystem.Type;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 
+import javaslang.Tuple2;
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
 import main.java.migration_rules.IPushableTransformation;
@@ -42,24 +49,37 @@ public class SparkJavaJobAnalyzer {
 	private final String RDDActions = "(count|cache)";
 	
 	private final static String migrationRulesPackage = "main.java.migration_rules.";
+	private final static String srcToAnalyze = "src/test/resources/java8streams_jobs/";
+	
+	private JavaParserFacade javaParserFacade;
 	
 	public String analyze (String fileToAnalyze) {
-		FileInputStream in = null;
-		
+		//Get the input stream from the job file to analyze
+		FileInputStream in = null;		
 		try {
 			in = new FileInputStream(fileToAnalyze);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		//Parse the file
+		
+		//Parse the job file
         CompilationUnit cu = JavaParser.parse(in);  
         
-        //First, get all the variables of type Stream, as they are the candidates to push down lambdas
-        StreamIdentifierVisitor streamIdentifierVisitor = new StreamIdentifierVisitor();
-        streamIdentifierVisitor.visit(cu, null);
+        //Build the object to infer types of lambdas from source code
+        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
+        combinedTypeSolver.add(new ReflectionTypeSolver());
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcToAnalyze)));
+        javaParserFacade = JavaParserFacade.get(combinedTypeSolver);
         
-        //Once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
+        //First, get all the variables of type Stream, as they are the candidates to push down lambdas
+        new StreamIdentifierVisitor().visit(cu, null);
+        
+        //Second, once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
         new StatementsExtractor().visit(cu, null);          
+        
+        //Third, we need to infer the types of the lambda functions to be compiled at the storage side
+        for (String key: identifiedStreams.keySet())
+        	findTypesOfLambdasInGraph(identifiedStreams.get(key));
         
         //Here, we need the intelligence to know what to pushdown 
         IPushableTransformation pushdownLambdaRule = null;        
@@ -95,6 +115,18 @@ public class SparkJavaJobAnalyzer {
         return encodeResponse(lambdasToMigrate, cu);
 	}
 
+	private void findTypesOfLambdasInGraph(FlowControlGraph flowControlGraph) {		
+		System.out.println(flowControlGraph);
+		//Here we try to fill the missing types of lambdas in the graph
+		for (GraphNode node: flowControlGraph){
+			LambdaTypeParser lambdaTypeParser = new LambdaTypeParser(node.getFunctionType());
+			//If the type is correctly set, go ahead
+			if (lambdaTypeParser.isTypeWellDefined()) continue;
+			//Otherwise, we have to check how to infer it
+		}
+			
+	}
+
 	/**
 	 * This class is intended to identify the variables (e.g., RDDs, Streams)
 	 * that will be object of optimization by sending some of the operations
@@ -126,7 +158,10 @@ public class SparkJavaJobAnalyzer {
 	 */
 	private class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		@Override
-        public void visit(MethodCallExpr methodExpression, Object arg) {			
+        public void visit(MethodCallExpr methodExpression, Object arg) {	
+			
+			System.out.println("methodExpression: " + methodExpression);
+	        
 			//Check if the current expression is related to any stream
 			boolean isExpressionOnStream = false;
 			String streamKeyString = "";
@@ -155,18 +190,21 @@ public class SparkJavaJobAnalyzer {
 			
 			String expressionString = "";
 			if (innerLambdaCall != null){
-				innerLambdaCall.accept(new LambdaExtractor(), lambdas);
-				
+				innerLambdaCall.accept(new LambdaExtractor(), lambdas);				
 				expressionString = innerLambdaCall.toString();
 			}else{
 				methodExpression.accept(new LambdaExtractor(), lambdas);
 				expressionString = methodExpression.toString();
 			}			
 			
-			List<String> parsedLambdas = new ArrayList<>();
+			List<Tuple2<String, String>> parsedLambdas = new ArrayList<>();
 			
 			//Get the entire lambda functions that can be offloaded
-			for (Node n: lambdas){        		
+			for (Node n: lambdas){    		    
+				//Take advantage of this pass to try to infer the types of the lambdas
+				//Anyway, this will require a further process later on
+				String lambdaType = getLambdaTypeFromNode(n);
+							
 				Pattern pattern = Pattern.compile("\\." + pushableLambdas + "+\\(?\\S+" + 
 										Pattern.quote(n.toString()) + "?\\S+\\)");
 		        Matcher matcher = pattern.matcher(expressionString);
@@ -175,7 +213,7 @@ public class SparkJavaJobAnalyzer {
 		        try {
 		        	matcher.find();
 			        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-			        parsedLambdas.add(matchedLambda);	
+			        parsedLambdas.add(new Tuple2<String, String>(matchedLambda, lambdaType));	
 		        }catch(IllegalStateException e) {
 		        	System.err.println("Error parsing the lambda. Probably you need to add how to "
 		        			+ "treat the following function in this code: " + expressionString);
@@ -186,15 +224,29 @@ public class SparkJavaJobAnalyzer {
 			Collections.reverse(parsedLambdas);
 			Pattern pattern = Pattern.compile("\\." + RDDActions + "+\\(\\)");
 			//Add the found lambdas and actions to the flow control graph
-			for (String theLambda: parsedLambdas){
+			for (Tuple2<String, String> lambdaTuple: parsedLambdas){
+				String theLambda = lambdaTuple._1();
+				String lambdaType = lambdaTuple._2();
 				Matcher matcher = pattern.matcher(theLambda);
 		        if (matcher.find()){
 		        	String matchedAction = theLambda.substring(matcher.start()+1, matcher.end());
-		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(theLambda.substring(0, matcher.start()), true);
+		        	//TODO: Not sure if the type of the lambda here is correct
+		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(
+		        			theLambda.substring(0, matcher.start()), lambdaType, true);
 		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, false);
-		        }else identifiedStreams.get(streamKeyString).appendOperationToRDD(theLambda, true);
+		        }else identifiedStreams.get(streamKeyString).appendOperationToRDD(theLambda, lambdaType, true);
 			}
-    	}     	
+    	}
+
+		private String getLambdaTypeFromNode(Node n) {
+			try {
+				Type type = javaParserFacade.getType(n, true);
+				return type.describe();
+			}catch(RuntimeException e){
+				System.err.println("Unable to find type for lambda: " + n);
+			}	
+			return null;
+		}     	
     }
 	
 	/**
@@ -209,7 +261,7 @@ public class SparkJavaJobAnalyzer {
 		@Override 
 		public void visit(LambdaExpr n, Object arg){
 			List<Node> lambdas = (List<Node>) arg;
-			lambdas.add(n);			
+			lambdas.add(n);	
 		}
 	}
 	

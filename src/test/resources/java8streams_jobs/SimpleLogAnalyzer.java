@@ -13,7 +13,8 @@ public class SimpleLogAnalyzer extends TestTask{
 		StringBuilder builder = new StringBuilder();
 		try{
 			Stream<String> myStream = Files.lines(Paths.get(inputFile));
-			long lines = myStream.filter(s -> s.contains("Sherbrooke"))
+			long lines = myStream
+					.filter(s -> s.contains("Sherbrooke"))
 					.map(l -> l)
 					.filter(s -> s.length()>10)
 					.count();

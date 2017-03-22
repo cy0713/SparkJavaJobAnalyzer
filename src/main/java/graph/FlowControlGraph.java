@@ -32,6 +32,25 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 		}
 	}
 	
+	/**
+	 * Add a new node to the flow control graph.
+	 * 
+	 * @param operation
+	 * @param transformation
+	 */
+	public void appendOperationToRDD(String operation, String functionType, boolean transformation){
+		GraphNode toAdd = new GraphNode();
+		toAdd.setTransformation(transformation);
+		toAdd.setToExecute(operation);
+		toAdd.setFunctionType(functionType);
+		if (root==null) {
+			root = lastNode = toAdd;
+		}else{
+			lastNode.setNextNode(toAdd);
+			lastNode = toAdd;
+		}
+	}
+	
 	@Override
 	public Iterator<GraphNode> iterator() {
 		return new FlowControlGraphIterator(this);
@@ -42,7 +61,8 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 		boolean finishLoop = root == null;
 		GraphNode pointer = root;
 		while (!finishLoop){
-			output.append(pointer.getToExecute() + ": is transformation? " + pointer.isTransformation());
+			output.append(pointer.getToExecute() + " -> type of lambda: " + pointer.getFunctionType()
+					+ ". Is transformation? " + pointer.isTransformation());
 			output.append("\n ^ \n");
 			pointer = pointer.getNextNode();
 			finishLoop = pointer == null;

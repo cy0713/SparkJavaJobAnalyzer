@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -23,7 +24,6 @@ import com.ibm.storlet.common.StorletOutputStream;
 
 import main.java.pl.joegreen.lambdaFromString.LambdaFactory;
 import main.java.pl.joegreen.lambdaFromString.TypeReference;
-
 
 /**
  * 
@@ -87,35 +87,8 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			if (lambdaCache.containsKey(lambdaSignature)) continue;
 			
 			//TODO: We need the type of each lambda in addition to the signature!!
+			//Compile the lambda and add it to the cache
 			lambdaCache.put(lambdaSignature, getFunctionObject(lambdaSignature, "Predicate<String>"));
-			
-			//SupportedLambdaTypes.getMapType("Function<String, Number>")).getClass())
-			//lambdaCache.put(lambdaSignature, (s) -> ((Stream) s).getClass()
-			//	.getMethod(theMethod, lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
-			//			SupportedLambdaTypes.getMapType("Function<String, Number>")).getClass()));
-			
-			//We get a map to instantiate
-			/*if (lambdaSignature.startsWith("map")){
-				System.out.println("Lambda body: " + getLambdaBody(lambdaSignature));
-				lambdaCache.put(lambdaSignature, (s) -> ((Stream) s).map((Function)
-					lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
-						SupportedLambdaTypes.getMapType("Function<String, Number>"))));
-				System.err.println("Adding MAP function: " + lambdaSignature);
-			//We get a map to instantiate
-			}else if (lambdaSignature.contains("flatMap")){				
-				System.out.println("Lambda body: " + getLambdaBody(lambdaSignature));
-				//FIXME: Could we do something like this to handle other types rather than Strings?
-				lambdaCache.put(lambdaSignature, (s) -> ((Stream) s).flatMap((Function) 
-					lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
-							SupportedLambdaTypes.getFlatMapType("Function<String, Stream<String>>"))));
-				System.err.println("Adding FLATMAP function: " + lambdaSignature);
-			//We get a filter to instantiate
-			}else if (lambdaSignature.contains("filter")){				
-				lambdaCache.put(lambdaSignature, (s) -> ((Stream) s).filter((Predicate)
-					lambdaFactory.createLambdaUnchecked(getLambdaBody(parameters.get(functionKey)), 
-							SupportedLambdaTypes.getFilterType("Predicate<String>"))));					
-				System.err.println("Adding FILTER function: " + lambdaSignature);
-			}else System.err.println("Warning! Bad function pushdown headers!");*/	
 			
 			//Add the new compiled function to the list of functions to apply to the stream
 			pushdownFunctions.add(lambdaCache.get(lambdaSignature));
@@ -199,7 +172,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			function = (s) -> {						
 				try {
 					//
-					return theMethod.invoke(((Stream) s), (Function)
+					return theMethod.invoke(((Stream) s), (Predicate)
 						lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
 								getLambdaType(methodName, lambdaType)));
 				} catch (IllegalAccessException|InvocationTargetException e) {

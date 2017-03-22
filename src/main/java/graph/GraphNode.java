@@ -7,6 +7,8 @@ public class GraphNode {
 	
 	private String toExecute = "";
 	
+	private String functionType = "";
+	
 	private GraphNode nextNode;
 	
 	
@@ -39,5 +41,12 @@ public class GraphNode {
 	public String getFunctionName() {
 		return toExecute.substring(0, toExecute.indexOf("("));
 	}
-	
+
+	public String getFunctionType() {
+		return functionType;
+	}
+
+	public void setFunctionType(String functionType) {
+		this.functionType = functionType;
+	}	
 }
