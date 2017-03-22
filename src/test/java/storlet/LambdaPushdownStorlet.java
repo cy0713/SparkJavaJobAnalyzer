@@ -59,7 +59,9 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	//It acts as a cache of repeated lambdas to avoid compilation overhead of already compiled lambdas.
 	protected Map<String, Function> lambdaCache = new HashMap<>();	
 	
-	Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap)\\s*?\\(");
+	protected Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap)\\s*?\\(");
+	
+	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
 	
 	@Override
 	@SuppressWarnings("unchecked")
@@ -80,18 +82,22 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         	if ((!functionKey.matches("\\d-lambda"))) continue;
         	
         	//Get the signature of the function to compile
-        	String lambdaSignature = parameters.get(functionKey);
-        	System.err.println("**>>New lambda to pushdown: " + lambdaSignature);
+        	String lambdaTypeAndBody = parameters.get(functionKey);
+        	String lambdaType = lambdaTypeAndBody.substring(0, 
+        			lambdaTypeAndBody.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR));
+        	String lambdaBody = lambdaTypeAndBody.substring(
+        			lambdaTypeAndBody.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)+1);
+        	System.err.println("**>>New lambda to pushdown: " + lambdaType + " ->>> " + lambdaBody);
         	
         	//Check if we have already compiled this lambda and exists in the cache
-			if (lambdaCache.containsKey(lambdaSignature)) continue;
+			if (lambdaCache.containsKey(lambdaBody)) continue;
 			
 			//TODO: We need the type of each lambda in addition to the signature!!
 			//Compile the lambda and add it to the cache
-			lambdaCache.put(lambdaSignature, getFunctionObject(lambdaSignature, "Predicate<String>"));
+			lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));
 			
 			//Add the new compiled function to the list of functions to apply to the stream
-			pushdownFunctions.add(lambdaCache.get(lambdaSignature));
+			pushdownFunctions.add(lambdaCache.get(lambdaBody));
         }
         System.err.println("Number of lambdas to execute: " + pushdownFunctions.size());
         
@@ -167,12 +173,12 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		Function function = null;
 		try {
 			//Get the method to invoke via reflection
-			Method theMethod = Stream.class.getMethod(methodName, Class.forName("java.util.function." 
-					+ lambdaType.substring(0, lambdaType.indexOf("<"))));
+			Method theMethod = Stream.class.getMethod(methodName, Class.forName(
+					lambdaType.substring(0, lambdaType.indexOf("<"))));
 			function = (s) -> {						
 				try {
 					//
-					return theMethod.invoke(((Stream) s), (Predicate)
+					return theMethod.invoke(((Stream) s), 
 						lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
 								getLambdaType(methodName, lambdaType)));
 				} catch (IllegalAccessException|InvocationTargetException e) {
@@ -202,7 +208,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 				methodName.substring(1) + "Type";
 		try {
 			Method theMethod = SupportedLambdaTypes.class.getMethod(supportedTypesMethod, String.class);
-			theMethod.invoke(SupportedLambdaTypes.class, lambdaType);
+			return (TypeReference) theMethod.invoke(SupportedLambdaTypes.class, lambdaType);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | 
 				IllegalArgumentException | InvocationTargetException e) {
 			e.printStackTrace();

@@ -67,8 +67,7 @@ public class LambdaTypeParser {
 				else continue;
 			}
 			//If we have to infer the first argument, look backwards on graph
-			if (i==FIRST_ARGUMENT){
-				
+			if (i==FIRST_ARGUMENT){				
 				List<String> previousNodeArguments = new LambdaTypeParser(
 						node.getPreviousNode().getFunctionType()).getArguments();
 				inferredArgument = previousNodeArguments.get(previousNodeArguments.size()-1);
@@ -79,13 +78,12 @@ public class LambdaTypeParser {
 			}else if (i==SECOND_ARGUMENT){
 				List<String> nextNodeArguments = new LambdaTypeParser(
 						node.getNextNode().getFunctionType()).getArguments();
+				//Check if previous node has arguments
+				nextNodeArguments = checkArgument(nextNodeArguments, node);
+				//Check if the argument is correct	
 				inferredArgument = nextNodeArguments.get(0);
-				//System.out.println("Inferred first argument from previous lambda: " + inferredArgument);	
-				inferredArgument = checkArgument(inferredArgument, node);
 				if (lambdaMethod.equals("flatMap")) {
 					inferredArgument = inferredArgument.replace("? super ", "").replace("? extends ", "");
-					//int endArgumentIndex = Math.max(inferredArgument.lastIndexOf(" "), 
-					//		inferredArgument.lastIndexOf(">"));
 					inferredArgument = "? extends Stream<"+inferredArgument.substring(0)+">";
 				}
 				if (arguments.size() > 1) arguments.remove(arguments.size()-1);
@@ -94,7 +92,7 @@ public class LambdaTypeParser {
 		}		
 		return formattedLambdaType();	
 	}
-	
+
 	private String checkArgument(String inferredArgument, GraphNode node) {
 		if (undefinedGeneric(inferredArgument)){
 			System.err.println("WARNING! We cannot infer the INPUT type for: " + node.getToExecute());
@@ -102,6 +100,15 @@ public class LambdaTypeParser {
 			return "? extends java.lang.String";
 		}		
 		return inferredArgument;
+	}
+	
+	private List<String> checkArgument(List<String> nextNodeArguments, GraphNode node) {
+		if (nextNodeArguments.isEmpty()){
+			System.err.println("WARNING! We cannot infer the OUTPUT type for: " + node.getToExecute());
+			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
+			return Arrays.asList("? extends java.lang.String");
+		}
+		return nextNodeArguments;
 	}
 
 	private String formattedLambdaType() {
@@ -120,7 +127,7 @@ public class LambdaTypeParser {
 	 * as in the storage side we will have as input Streams of Strings initially.
 	 */
 	private void setFirstLambdaInputTypeAsString() {
-		arguments.remove(0);
+		if (!arguments.isEmpty()) arguments.remove(0);
 		arguments.add(0, "? extends java.lang.String");
 	}
 	

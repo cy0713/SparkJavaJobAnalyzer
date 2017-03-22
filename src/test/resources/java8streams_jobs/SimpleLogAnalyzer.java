@@ -13,11 +13,11 @@ public class SimpleLogAnalyzer extends TestTask{
 		StringBuilder builder = new StringBuilder();
 		try{
 			Stream<String> myStream = Files.lines(Paths.get(inputFile));
-			long lines = myStream
-					.filter(s -> s.contains("Sherbrooke"))
+			long lines = 0;
+			myStream.filter(s -> s.contains("Sherbrooke"))
 					.map(l -> l)
-					.filter(s -> s.length()>10)
-					.count();
+					.filter(s -> s.length()>10);
+					//.count();
 			builder.append(lines);
 			myStream.close();
 		} catch (IOException e) {

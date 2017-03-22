@@ -1,8 +1,12 @@
 package main.java.analyzer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +19,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseException;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.VariableDeclarator;
@@ -28,6 +33,8 @@ import com.github.javaparser.symbolsolver.model.typesystem.Type;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.github.javaparser.symbolsolver.SourceFileInfoExtractor;
+import com.github.javaparser.symbolsolver.javaparser.Navigator;
 
 import javaslang.Tuple2;
 import main.java.graph.FlowControlGraph;
@@ -50,6 +57,8 @@ public class SparkJavaJobAnalyzer {
 	
 	private final static String migrationRulesPackage = "main.java.migration_rules.";
 	private final static String srcToAnalyze = "src/test/resources/java8streams_jobs/";
+
+	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
 	
 	private JavaParserFacade javaParserFacade;
 	
@@ -71,6 +80,9 @@ public class SparkJavaJobAnalyzer {
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcToAnalyze)));
         javaParserFacade = JavaParserFacade.get(combinedTypeSolver);
         
+        //Navigator.findAllNodesOfGivenClass(cu, LambdaExpr.class).stream()
+        //		 .forEach(l -> System.out.println(javaParserFacade.getType(l, true).describe()));
+        
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
         new StreamIdentifierVisitor().visit(cu, null);
         
@@ -85,10 +97,8 @@ public class SparkJavaJobAnalyzer {
         IPushableTransformation pushdownLambdaRule = null;        
         List<Tuple2<String, String>> lambdasToMigrate = new ArrayList<>();
         for (String key: identifiedStreams.keySet()){
-        	for (GraphNode node: identifiedStreams.get(key)){   		
-        		
+        	for (GraphNode node: identifiedStreams.get(key)){   		        		
         		String functionName = node.getFunctionName();
-        		System.out.println("PARSED FUNCTION: " + node.getToExecute());
         		String executionResult = null;
         		try {
         			//Instantiate the class that contains the rules to pushdown a given lambda
@@ -241,7 +251,9 @@ public class SparkJavaJobAnalyzer {
 		private String getLambdaTypeFromNode(Node n) {
 			try {
 				Type type = javaParserFacade.getType(n, true);
-				return type.describe();
+				String typeString = type.describe();
+				//Sometimes we get and awkward type definition that has both super/extends keywords
+				return typeString.replace(" ? extends ? super ", " ? extends ");
 			}catch(RuntimeException e){
 				System.err.println("Unable to find type for lambda: " + n);
 			}	
@@ -282,8 +294,8 @@ public class SparkJavaJobAnalyzer {
 		for (Tuple2<String, String> lambda: lambdasToMigrate){
 			System.out.println(lambda);
 			JSONObject lambdaObj = new JSONObject();
-			lambdaObj.put("lambda-body", lambda._1());
-			lambdaObj.put("lambda-type", lambda._2());
+			lambdaObj.put("lambda-type-and-body", lambda._2() + 
+					LAMBDA_TYPE_AND_BODY_SEPARATOR + lambda._1());
 			jsonArray.add(lambdaObj); 
 		}
 		//Separator between lambdas and the job source code

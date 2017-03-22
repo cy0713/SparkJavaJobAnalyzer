@@ -10,8 +10,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -70,7 +71,7 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 			
 		}catch (Exception e) {
 			System.out.println("Exception executing LambdaPushdown Storlet!");
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
 		
 	}
@@ -110,10 +111,11 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		HashMap<String, String> lambdaMap = new HashMap<>();
 		try {
 			jsonObj = (JSONObject) parser.parse(jobAnalyzerOutput);
-			List<String> lambdas = (List<String>) jsonObj.get("lambdas");
+			Iterator<JSONObject> lambdas =  ((JSONArray) jsonObj.get("lambdas")).iterator();
 			int index = 0;
-			for (String l: lambdas){
-				lambdaMap.put(index+"-lambda", l);
+			while (lambdas.hasNext()){
+				JSONObject jlambda = lambdas.next();
+				lambdaMap.put(index+"-lambda", (String)jlambda.get("lambda-type-and-body"));
 				index++;
 			}
 		} catch (ParseException e) {
