@@ -13,7 +13,7 @@ import static java.util.stream.Collectors.groupingBy;
 
 import test.java.TestTask;
 
-public class WordCountJava8Streams extends TestTask{
+public class WordCountJava8Streams implements TestTask{
 	
 	public StringBuilder doTask(String inputFile) {
 		StringBuilder builder = new StringBuilder();

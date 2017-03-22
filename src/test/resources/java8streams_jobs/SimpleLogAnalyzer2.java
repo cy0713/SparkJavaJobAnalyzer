@@ -7,11 +7,7 @@ import java.util.stream.Stream;
 
 import test.java.TestTask;
 
-public class SimpleLogAnalyzer2 extends TestTask{
-	
-	public static void main(String[] args) {
-		new SimpleLogAnalyzer2().doTask("test_data/storlet_output.simpleloganalyzer2_pushdown");
-	}
+public class SimpleLogAnalyzer2 implements TestTask{
 	
 	public StringBuilder doTask(String inputFile) {
 		StringBuilder builder = new StringBuilder();

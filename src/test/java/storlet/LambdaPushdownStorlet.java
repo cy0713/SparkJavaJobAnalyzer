@@ -170,6 +170,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Function getFunctionObject(String lambdaSignature, String lambdaType) {
 		String methodName = lambdaSignature.substring(0, lambdaSignature.indexOf("("));	
+		System.out.println("*********" + methodName);
 		Function function = null;
 		try {
 			//Get the method to invoke via reflection
@@ -177,10 +178,8 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 					lambdaType.substring(0, lambdaType.indexOf("<"))));
 			function = (s) -> {						
 				try {
-					//
-					return theMethod.invoke(((Stream) s), 
-						lambdaFactory.createLambdaUnchecked(getLambdaBody(lambdaSignature), 
-								getLambdaType(methodName, lambdaType)));
+					return theMethod.invoke(((Stream) s), lambdaFactory.createLambdaUnchecked(
+						getLambdaBody(lambdaSignature), getLambdaType(methodName, lambdaType)));
 				} catch (IllegalAccessException|InvocationTargetException e) {
 					System.err.println("Error invoking a pushdown method on the Stream class.");
 					e.printStackTrace();

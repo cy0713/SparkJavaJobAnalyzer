@@ -1,7 +1,7 @@
 package test.java;
 
-public abstract class TestTask {
+public interface TestTask {
 	
-	public abstract StringBuilder doTask(String inputFile);
+	public StringBuilder doTask(String inputFile);
 	
 }

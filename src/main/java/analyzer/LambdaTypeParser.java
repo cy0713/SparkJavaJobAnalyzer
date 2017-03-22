@@ -37,8 +37,7 @@ public class LambdaTypeParser {
 		if (lambdaRawType==null) return;
 		//Get the rest of information from a proper string type description
 		this.functionalInterface = lambdaRawType.substring(0, lambdaRawType.indexOf("<"));
-		parseArgumentsFromRawType(lambdaRawType);
-		
+		parseArgumentsFromRawType(lambdaRawType);		
 	}	
 	
 	public boolean isTypeWellDefined(){

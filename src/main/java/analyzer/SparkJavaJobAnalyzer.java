@@ -56,7 +56,7 @@ public class SparkJavaJobAnalyzer {
 	private final String RDDActions = "(count|cache)";
 	
 	private final static String migrationRulesPackage = "main.java.migration_rules.";
-	private final static String srcToAnalyze = "src/test/resources/java8streams_jobs/";
+	private final static String srcToAnalyze = "src/"; ///resources/java8streams_jobs/";
 
 	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
 	
@@ -129,6 +129,7 @@ public class SparkJavaJobAnalyzer {
 		System.out.println(flowControlGraph);
 		//Here we try to fill the missing types of lambdas in the graph
 		for (GraphNode node: flowControlGraph){
+			if (!node.isTransformation()) continue;
 			LambdaTypeParser lambdaTypeParser = new LambdaTypeParser(node.getFunctionType());
 			//If the type is correctly set, go ahead
 			if (lambdaTypeParser.isTypeWellDefined()) continue;
@@ -251,9 +252,12 @@ public class SparkJavaJobAnalyzer {
 		private String getLambdaTypeFromNode(Node n) {
 			try {
 				Type type = javaParserFacade.getType(n, true);
-				String typeString = type.describe();
 				//Sometimes we get and awkward type definition that has both super/extends keywords
-				return typeString.replace(" ? extends ? super ", " ? extends ");
+				String typeString = type.describe().replace(" ? extends ? super ", " ? extends ");
+				typeString = typeString.replace("? super ", "? extends ");
+				//Replace wrong primitive type return from issue in JavaSymbolSolver
+				typeString = typeString.replace(" int", " java.lang.Integer");
+				return typeString;
 			}catch(RuntimeException e){
 				System.err.println("Unable to find type for lambda: " + n);
 			}	
