@@ -5,13 +5,14 @@ public class GraphNode {
 	//RDD operations can be only transformations or actions
 	private boolean transformation = true;
 	
-	private String toExecute = "";
+	private String lambdaSignature;	
+	private String functionType;
 	
-	private String functionType = "";
-	
-	private GraphNode nextNode;
-	
+	private GraphNode nextNode;	
 	private GraphNode previousNode;
+	
+	private String toPushdown;
+	private String codeReplacement = "";
 	
 	
 	/*Access methods*/
@@ -32,16 +33,16 @@ public class GraphNode {
 		this.nextNode = nextNode;
 	}
 
-	public String getToExecute() {
-		return toExecute;
+	public String getLambdaSignature() {
+		return lambdaSignature;
 	}
 
-	public void setToExecute(String toExecute) {
-		this.toExecute = toExecute;
+	public void setLambdaSignature(String toExecute) {
+		this.lambdaSignature = toExecute;
 	}
 	
 	public String getFunctionName() {
-		return toExecute.substring(0, toExecute.indexOf("("));
+		return lambdaSignature.substring(0, lambdaSignature.indexOf("("));
 	}
 
 	public String getFunctionType() {
@@ -62,9 +63,24 @@ public class GraphNode {
 
 	@Override
 	public String toString() {
-		return "GraphNode [transformation=" + transformation + ", toExecute=" + toExecute + ", functionType="
+		return "GraphNode [transformation=" + transformation + ", toExecute=" + lambdaSignature + ", functionType="
 				+ functionType + ", nextNode=" + nextNode + "]";
-	}	
-	
+	}
+
+	public String getToPushdown() {
+		return toPushdown;
+	}
+
+	public void setToPushdown(String toPushdown) {
+		this.toPushdown = toPushdown;
+	}
+
+	public String getCodeReplacement() {
+		return codeReplacement;
+	}
+
+	public void setCodeReplacement(String codeReplacement) {
+		this.codeReplacement = codeReplacement;
+	}
 	
 }

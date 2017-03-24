@@ -93,9 +93,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			if (lambdaCache.containsKey(lambdaBody)) continue;
 			
 			//Compile the lambda and add it to the cache
-			Function func = getFunctionObject(lambdaBody, lambdaType);
-			System.out.println("COMPILATION RESULT: " + func);
-			lambdaCache.put(lambdaBody, func);
+			lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));
 			
 			//Add the new compiled function to the list of functions to apply to the stream
 			pushdownFunctions.add(lambdaCache.get(lambdaBody));
@@ -171,7 +169,6 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Function getFunctionObject(String lambdaSignature, String lambdaType) {
 		String methodName = lambdaSignature.substring(0, lambdaSignature.indexOf("("));	
-		System.out.println("COMPILING: " + methodName);
 		Function function = null;
 		try {
 			//Get the method to invoke via reflection
@@ -179,8 +176,6 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 					lambdaType.substring(0, lambdaType.indexOf("<"))));
 			function = (s) -> {						
 				try {
-					TypeReference t = getLambdaType(methodName, lambdaType);
-					System.out.println(t.getType());
 					return theMethod.invoke(((Stream) s), lambdaFactory.createLambdaUnchecked(
 						getLambdaBody(lambdaSignature), getLambdaType(methodName, lambdaType)));
 				} catch (IllegalAccessException|InvocationTargetException e) {

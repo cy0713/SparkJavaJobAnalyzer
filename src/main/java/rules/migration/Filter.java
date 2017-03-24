@@ -1,11 +1,12 @@
-package main.java.migration_rules;
+package main.java.rules.migration;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import main.java.graph.GraphNode;
+import main.java.rules.LambdaRule;
 
-public class Filter implements IPushableTransformation {
+public class Filter implements LambdaRule {
 
 	/**
 	 * Implementation of filter lambda migrations.
@@ -36,9 +37,9 @@ public class Filter implements IPushableTransformation {
 	}
 	
 	@Override
-	public String pushdown(GraphNode graphNode) {
+	public void applyRule(GraphNode graphNode) {
 		//If no pushdown is possible, return null
-		if (!canExecuteFilter) return null;
+		if (!canExecuteFilter) return;
 
 		boolean continueOperationLookup = graphNode.getNextNode()!=null;
 		//Look for incompatible operations with current or next filters
@@ -52,6 +53,6 @@ public class Filter implements IPushableTransformation {
 			}
 			pointer = pointer.getNextNode();
 		}
-		return graphNode.getToExecute();
+		graphNode.setToPushdown(graphNode.getLambdaSignature());
 	}
 }

@@ -1,8 +1,8 @@
-package main.java.migration_rules;
+package main.java.rules;
 
 import main.java.graph.GraphNode;
 
-public interface IPushableTransformation {
+public interface LambdaRule {
 	
 	/**
 	 * The methods implementing this interface receive as input the
@@ -18,6 +18,6 @@ public interface IPushableTransformation {
 	 * @param flowControlGraph
 	 * @return list of lambdas to execute at the storage side
 	 */
-	public String pushdown(GraphNode graphNode);
+	public void applyRule(GraphNode graphNode);
 
 }

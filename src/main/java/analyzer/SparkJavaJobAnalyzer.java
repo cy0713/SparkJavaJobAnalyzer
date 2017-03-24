@@ -18,12 +18,14 @@ import org.json.simple.JSONObject;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.symbolsolver.javaparser.Navigator;
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
 import com.github.javaparser.symbolsolver.model.typesystem.Type;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -32,7 +34,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
-import main.java.migration_rules.IPushableTransformation;
+import main.java.rules.LambdaRule;
 
 //1.- Extract transformations and operations from RDDs
 //2.- Create a Control Flow Graph
@@ -48,7 +50,8 @@ public class SparkJavaJobAnalyzer {
 	private final String pushableLambdas = "(map|filter|flatMap|mapToPair|reduceByKey)";
 	private final String RDDActions = "(count|cache)";
 	
-	private final static String migrationRulesPackage = "main.java.migration_rules.";
+	private final static String migrationRulesPackage = "main.java.rules.migration.";
+	private final static String modificationRulesPackage = "main.java.rules.modification.";
 	private final static String srcToAnalyze = "src/"; ///resources/java8streams_jobs/";
 
 	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
@@ -65,16 +68,17 @@ public class SparkJavaJobAnalyzer {
 		}
 		
 		//Parse the job file
-        CompilationUnit cu = JavaParser.parse(in);  
+        CompilationUnit cu = JavaParser.parse(in); 
+        
+        //Keep the original job code if we cannot execute lambdas due to resource constraints
+        String originalJobCode = cu.toString();
+        String modifiedJobCode = originalJobCode;
         
         //Build the object to infer types of lambdas from source code
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcToAnalyze)));
         javaParserFacade = JavaParserFacade.get(combinedTypeSolver);
-        
-        //Navigator.findAllNodesOfGivenClass(cu, LambdaExpr.class).stream()
-        //		 .forEach(l -> System.out.println(javaParserFacade.getType(l, true).describe()));
         
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
         new StreamIdentifierVisitor().visit(cu, null);
@@ -87,35 +91,51 @@ public class SparkJavaJobAnalyzer {
         	findTypesOfLambdasInGraph(identifiedStreams.get(key));
         
         //TODO: Big Challenge: if there are assignments of an RDD variable to another RDD variable, 
-        //find the minimum set of lambdas that can be successfully executed at the storage side
-        
-        //Here, we need the intelligence to know what to pushdown 
-        IPushableTransformation pushdownLambdaRule = null;        
-        List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
+        //find the minimum set of lambdas that can be successfully executed at the storage side        
+        //Here, we need the intelligence to know what to pushdown   
         for (String key: identifiedStreams.keySet()){
-        	for (GraphNode node: identifiedStreams.get(key)){   		        		
-        		String functionName = node.getFunctionName();
-        		String executionResult = null;
-        		try {
-        			//Instantiate the class that contains the rules to pushdown a given lambda
-					pushdownLambdaRule = (IPushableTransformation) Class.forName(
-						migrationRulesPackage + new String(functionName.substring(0, 1)).toUpperCase() +
-							functionName.substring(1, functionName.length())).newInstance();
-					//Get whether the current lambda can be pushed down or not
-					executionResult = pushdownLambdaRule.pushdown(node);
-				} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-					System.err.println("No migration rule for lambda: " + functionName);
-				}
-    			if (executionResult!=null) 
-    				lambdasToMigrate.add(new SimpleEntry<String, String>(executionResult, node.getFunctionType()));        		
-        	}
+        	applyRulesToControlFlowGraph(identifiedStreams.get(key), migrationRulesPackage);
         }      
         
         //Next, we need to update the job code in the case the flow graph has changed
+        for (String key: identifiedStreams.keySet()){
+        	applyRulesToControlFlowGraph(identifiedStreams.get(key), modificationRulesPackage);
+        } 
         
+        //TODO: Big Challenge: Making the previous two steps (migration/modification rules)
+        //to properly work individually will be challenging, as the logic of both is somewhat entangled
+
+        //Get all the lambdas from the graph that have been selected for pushdown
+        List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
+        for (String key: identifiedStreams.keySet()){
+        	for (GraphNode node: identifiedStreams.get(key)){
+        		if (node.getToPushdown()!=null)
+        			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), node.getFunctionType()));
+        		if (node.isTransformation())
+        			modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), node.getCodeReplacement());
+        	}
+        }  
+        System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
-        return encodeResponse(lambdasToMigrate, cu);
+        return encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
+	}
+
+	private void applyRulesToControlFlowGraph(FlowControlGraph flowControlGraph, String rulesPackage) {
+        LambdaRule pushdownLambdaRule = null;
+        for (GraphNode node: flowControlGraph){  
+        	String functionName = node.getFunctionName();
+			try {
+				//Instantiate the class that contains the rules to pushdown a given lambda
+				pushdownLambdaRule = (LambdaRule) Class.forName(
+					rulesPackage + new String(functionName.substring(0, 1)).toUpperCase() +
+						functionName.substring(1, functionName.length())).newInstance();
+				//Get whether the current lambda can be pushed down or not
+				pushdownLambdaRule.applyRule(node);
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+				System.err.println("No rule for lambda: " + functionName + " in " + rulesPackage);
+			}
+        }		
 	}
 
 	private void findTypesOfLambdasInGraph(FlowControlGraph flowControlGraph) {		
@@ -265,8 +285,7 @@ public class SparkJavaJobAnalyzer {
 	 *
 	 */
 	@SuppressWarnings("unchecked")
-	private class LambdaExtractor extends VoidVisitorAdapter<Object> {
-		
+	private class LambdaExtractor extends VoidVisitorAdapter<Object> {		
 		@Override 
 		public void visit(LambdaExpr n, Object arg){
 			List<Node> lambdas = (List<Node>) arg;
@@ -284,7 +303,8 @@ public class SparkJavaJobAnalyzer {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private String encodeResponse(List<SimpleEntry<String, String>> lambdasToMigrate, CompilationUnit cu) {
+	private String encodeResponse(String originalJob, String modifiedJob, 
+									List<SimpleEntry<String, String>> lambdasToMigrate) {
 		JSONObject obj = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
 		
@@ -296,7 +316,8 @@ public class SparkJavaJobAnalyzer {
 			jsonArray.add(lambdaObj); 
 		}
 		//Separator between lambdas and the job source code
-		obj.put("job-code", cu.toString());		
+		obj.put("original-job-code", originalJob);	
+		obj.put("pushdown-job-code", modifiedJob);	
 		obj.put("lambdas", jsonArray);
 		return obj.toString();
 	}

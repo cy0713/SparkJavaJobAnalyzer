@@ -3,6 +3,7 @@ package test.java;
 import java.util.HashMap;
 
 import main.java.analyzer.SparkJavaJobAnalyzer;
+import main.java.compiler.JobCompiler;
 import test.resources.java8streams_jobs.WordCountJava8Streams;
 
 public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{	
@@ -13,7 +14,7 @@ public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{
 		 * STEP 1: Execute the analytics task without pushdown
 		 */
 		executePushdownStorlet(new HashMap<>(), "test_data/storlet_output.wordcountj8_normal");
-		WordCountJava8Streams analyticsJob = new WordCountJava8Streams();
+		TestTask analyticsJob = new WordCountJava8Streams();
 		//We execute the analytics job on the output of the storlet
 		writeTaskOutputResult(analyticsJob.doTask("test_data/storlet_output.wordcountj8_normal"), 
 				"test_data/job_result.wordcountj8_normal");
@@ -27,15 +28,16 @@ public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{
         // visit and print the methods names
         String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + 
         		"/java8streams_jobs/WordCountJava8Streams.java");
-        HashMap<String, String> lambdas = getLambdaMap(pushdownAnalysisResult);
+        loadAnalyzerResults(pushdownAnalysisResult);
         
         /*
 		 * STEP 3: Execute again the analytics task and also the lambdas at the storage side
 		 */
-        executePushdownStorlet(lambdas, "test_data/storlet_output.wordcountj8_pushdown");
+        executePushdownStorlet(lambdaMap, "test_data/storlet_output.wordcountj8_pushdown");
         //Make sure that the result of the storlet with lambdas is different to the input
       	assertFalse(compareFiles(INPUT_FILE_NAME, "test_data/storlet_output.wordcountj8_pushdown"));
-		analyticsJob = new WordCountJava8Streams();
+      	System.out.println(modifiedJobCode);
+		analyticsJob = (TestTask) new JobCompiler().compileFromString(analyticsJob.getClass().getSimpleName(), modifiedJobCode);
 		//We execute the analytics job on the output of the storlet
 		writeTaskOutputResult(analyticsJob.doTask("test_data/storlet_output.wordcountj8_pushdown"), 
 				"test_data/job_result.wordcountj8_pushdown");

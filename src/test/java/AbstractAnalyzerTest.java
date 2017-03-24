@@ -38,6 +38,9 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 	protected String normalResult;
 	protected String pushdownResult;
 	
+	protected String modifiedJobCode;
+	protected HashMap<String, String> lambdaMap = new HashMap<>();	
+	
 	protected void executePushdownStorlet(HashMap<String, String> lambdaMap, String outputFile){
 		
 		try {
@@ -105,10 +108,9 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		return false;
 	}
 	
-	protected HashMap<String, String> getLambdaMap (String jobAnalyzerOutput) {
+	protected void loadAnalyzerResults (String jobAnalyzerOutput) {
 		JSONParser parser = new JSONParser();
 		JSONObject jsonObj = null;
-		HashMap<String, String> lambdaMap = new HashMap<>();
 		try {
 			jsonObj = (JSONObject) parser.parse(jobAnalyzerOutput);
 			Iterator<JSONObject> lambdas =  ((JSONArray) jsonObj.get("lambdas")).iterator();
@@ -118,10 +120,10 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 				lambdaMap.put(index+"-lambda", (String)jlambda.get("lambda-type-and-body"));
 				index++;
 			}
+			modifiedJobCode = (String) jsonObj.get("pushdown-job-code");
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		return lambdaMap;
 	}
 
 }

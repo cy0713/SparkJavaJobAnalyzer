@@ -43,7 +43,7 @@ public class LambdaTypeParser {
 			setFirstLambdaInputTypeAsString();		
 		if (isTypeWellDefined()) return formattedLambdaType();
 		
-		String lambdaMethod = node.getToExecute().substring(0, node.getToExecute().indexOf("("));
+		String lambdaMethod = node.getLambdaSignature().substring(0, node.getLambdaSignature().indexOf("("));
 		//Second, check if the type of the lambda is unknown at all
 		if (functionalInterface==null){
 			Matcher matcher = functionBasedLambdas.matcher(lambdaMethod);
@@ -92,7 +92,7 @@ public class LambdaTypeParser {
 	private String checkArgument(String inferredArgument, GraphNode node) {
 		if (undefinedGeneric(inferredArgument)){
 			System.err.println("WARNING! We cannot infer the parameter type for: " +
-					inferredArgument + " in " + node.getToExecute());
+					inferredArgument + " in " + node.getLambdaSignature());
 			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
 			return "java.lang.String";
 		}		
@@ -101,7 +101,7 @@ public class LambdaTypeParser {
 	
 	private List<String> checkArgument(List<String> nextNodeArguments, GraphNode node) {
 		if (nextNodeArguments.isEmpty()){
-			System.err.println("WARNING! We cannot find next node parameters for: " + node.getToExecute());
+			System.err.println("WARNING! We cannot find next node parameters for: " + node.getLambdaSignature());
 			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
 			return Arrays.asList("java.lang.String");
 		}
