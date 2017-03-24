@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.AbstractMap.*;
 
 import main.java.pl.joegreen.lambdaFromString.TypeReference;
 
@@ -15,19 +16,21 @@ public class SupportedLambdaTypes {
 	private static Map<String, TypeReference> supportedFlatMapTypes = new HashMap<>();
 	
 	static {
-		supportedMapTypes.put("java.util.function.Function<? extends java.lang.String, ? extends java.lang.String>", 
+		supportedMapTypes.put("java.util.function.Function<java.lang.String, java.lang.String>", 
 				new TypeReference<Function<String, String>>(){});
-		supportedMapTypes.put("java.util.function.Function<? extends java.lang.String, ? extends java.lang.Integer>", 
+		supportedMapTypes.put("java.util.function.Function<java.lang.String, java.lang.Integer>", 
 				new TypeReference<Function<String, Integer>>(){});
-		supportedMapTypes.put("java.util.function.Function<? extends java.lang.Integer, ? extends java.lang.String>", 
+		supportedMapTypes.put("java.util.function.Function<java.lang.Integer, java.lang.String>", 
 				new TypeReference<Function<Integer, String>>(){});
+		supportedMapTypes.put("java.util.function.Function<java.lang.String, java.util.AbstractMap.SimpleEntry<java.lang.String, java.lang.Long>>", 
+				new TypeReference<Function<String, SimpleEntry<String, Long>>>(){});
 		
-		supportedFilterTypes.put("java.util.function.Predicate<? extends java.lang.String>", 
+		supportedFilterTypes.put("java.util.function.Predicate<java.lang.String>", 
 				new TypeReference<Predicate<String>>() {});
-		supportedFilterTypes.put("java.util.function.Predicate<? extends java.lang.Integer>", 
+		supportedFilterTypes.put("java.util.function.Predicate<java.lang.Integer>", 
 				new TypeReference<Predicate<Integer>>() {});
 		
-		supportedFlatMapTypes.put("java.util.function.Function<? extends java.lang.String, ? extends java.util.stream.Stream<String>>", 
+		supportedFlatMapTypes.put("java.util.function.Function<java.lang.String, java.util.stream.Stream<java.lang.String>>", 
 				new TypeReference<Function<String, Stream<String>>>(){});
 	}
 	

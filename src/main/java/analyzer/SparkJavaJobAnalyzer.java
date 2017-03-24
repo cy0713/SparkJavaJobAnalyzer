@@ -1,12 +1,9 @@
 package main.java.analyzer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,7 +16,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParseException;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.VariableDeclarator;
@@ -33,10 +29,7 @@ import com.github.javaparser.symbolsolver.model.typesystem.Type;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import com.github.javaparser.symbolsolver.SourceFileInfoExtractor;
-import com.github.javaparser.symbolsolver.javaparser.Navigator;
 
-import javaslang.Tuple2;
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
 import main.java.migration_rules.IPushableTransformation;
@@ -93,9 +86,12 @@ public class SparkJavaJobAnalyzer {
         for (String key: identifiedStreams.keySet())
         	findTypesOfLambdasInGraph(identifiedStreams.get(key));
         
+        //TODO: Big Challenge: if there are assignments of an RDD variable to another RDD variable, 
+        //find the minimum set of lambdas that can be successfully executed at the storage side
+        
         //Here, we need the intelligence to know what to pushdown 
         IPushableTransformation pushdownLambdaRule = null;        
-        List<Tuple2<String, String>> lambdasToMigrate = new ArrayList<>();
+        List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
         for (String key: identifiedStreams.keySet()){
         	for (GraphNode node: identifiedStreams.get(key)){   		        		
         		String functionName = node.getFunctionName();
@@ -111,12 +107,9 @@ public class SparkJavaJobAnalyzer {
 					System.err.println("No migration rule for lambda: " + functionName);
 				}
     			if (executionResult!=null) 
-    				lambdasToMigrate.add(new Tuple2<String, String>(executionResult, node.getFunctionType()));        		
+    				lambdasToMigrate.add(new SimpleEntry<String, String>(executionResult, node.getFunctionType()));        		
         	}
         }      
-        
-        //TODO: Big Challenge: if there are assignments of an RDD variable to another RDD variable, 
-        //find the minimum set of lambdas that can be successfully executed at the storage side
         
         //Next, we need to update the job code in the case the flow graph has changed
         
@@ -134,7 +127,6 @@ public class SparkJavaJobAnalyzer {
 			//If the type is correctly set, go ahead
 			if (lambdaTypeParser.isTypeWellDefined()) continue;
 			//Otherwise, we have to check how to infer it
-			//System.out.println("We have to infer arguments for: " + node.toString());
 			node.setFunctionType(lambdaTypeParser.solveTypeFromGraph(node));		
 			System.out.println(node.getFunctionType());
 		}			
@@ -208,7 +200,7 @@ public class SparkJavaJobAnalyzer {
 				expressionString = methodExpression.toString();
 			}			
 			//Parsed lambdas contain the <lambdaSignature, lambdaType>
-			List<Tuple2<String, String>> parsedLambdas = new ArrayList<>();
+			List<SimpleEntry<String, String>> parsedLambdas = new ArrayList<>();
 			
 			//Get the entire lambda functions that can be offloaded
 			for (Node n: lambdas){    		    
@@ -224,7 +216,7 @@ public class SparkJavaJobAnalyzer {
 		        try {
 		        	matcher.find();
 			        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-			        parsedLambdas.add(new Tuple2<String, String>(matchedLambda, lambdaType));	
+			        parsedLambdas.add(new SimpleEntry<String, String>(matchedLambda, lambdaType));	
 		        }catch(IllegalStateException e) {
 		        	System.err.println("Error parsing the lambda. Probably you need to add how to "
 		        			+ "treat the following function in this code: " + expressionString);
@@ -235,9 +227,9 @@ public class SparkJavaJobAnalyzer {
 			Collections.reverse(parsedLambdas);
 			Pattern pattern = Pattern.compile("\\." + RDDActions + "+\\(\\)");
 			//Add the found lambdas and actions to the flow control graph
-			for (Tuple2<String, String> lambdaTuple: parsedLambdas){
-				String theLambda = lambdaTuple._1();
-				String lambdaType = lambdaTuple._2();
+			for (SimpleEntry<String, String> lambdaTuple: parsedLambdas){
+				String theLambda = lambdaTuple.getKey();
+				String lambdaType = lambdaTuple.getValue();
 				Matcher matcher = pattern.matcher(theLambda);
 		        if (matcher.find()){
 		        	String matchedAction = theLambda.substring(matcher.start()+1, matcher.end());
@@ -252,11 +244,12 @@ public class SparkJavaJobAnalyzer {
 		private String getLambdaTypeFromNode(Node n) {
 			try {
 				Type type = javaParserFacade.getType(n, true);
-				//Sometimes we get and awkward type definition that has both super/extends keywords
-				String typeString = type.describe().replace(" ? extends ? super ", " ? extends ");
-				typeString = typeString.replace("? super ", "? extends ");
-				//Replace wrong primitive type return from issue in JavaSymbolSolver
-				typeString = typeString.replace(" int", " java.lang.Integer");
+				//Clean the raw input information coming from JSS
+				String typeString = type.describe().replace(" ? extends ? super ", "")	
+												   .replace("? super ", "")
+												   .replace("? extends ", "")
+												   .replace(" int", " java.lang.Integer");
+				System.out.println("Type found by JSS: " + typeString);
 				return typeString;
 			}catch(RuntimeException e){
 				System.err.println("Unable to find type for lambda: " + n);
@@ -291,15 +284,15 @@ public class SparkJavaJobAnalyzer {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private String encodeResponse(List<Tuple2<String, String>> lambdasToMigrate, CompilationUnit cu) {
+	private String encodeResponse(List<SimpleEntry<String, String>> lambdasToMigrate, CompilationUnit cu) {
 		JSONObject obj = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
 		
-		for (Tuple2<String, String> lambda: lambdasToMigrate){
+		for (SimpleEntry<String, String> lambda: lambdasToMigrate){
 			System.out.println(lambda);
 			JSONObject lambdaObj = new JSONObject();
-			lambdaObj.put("lambda-type-and-body", lambda._2() + 
-					LAMBDA_TYPE_AND_BODY_SEPARATOR + lambda._1());
+			lambdaObj.put("lambda-type-and-body", lambda.getValue() + 
+					LAMBDA_TYPE_AND_BODY_SEPARATOR + lambda.getKey());
 			jsonArray.add(lambdaObj); 
 		}
 		//Separator between lambdas and the job source code

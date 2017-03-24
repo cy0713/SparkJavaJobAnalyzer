@@ -19,7 +19,7 @@
 			<version>3.1.2</version>
 		</dependency>
 
-		<!-- JavaSymbolResolver dependencies -->
+		<!-- JavaSymbolResolver dependencies 
 		<dependency>
 		    <groupId>com.github.javaparser</groupId>
 		    <artifactId>java-symbol-solver-core</artifactId>
@@ -36,7 +36,7 @@
 			<groupId>com.github.javaparser</groupId>
 			<artifactId>java-symbol-solver-logic</artifactId>
 			<version>0.5.2</version>
-		</dependency>
+		</dependency> -->
 
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
@@ -50,6 +50,21 @@
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/net.openhft/compiler -->
+		<dependency>
+		    <groupId>net.openhft</groupId>
+		    <artifactId>compiler</artifactId>
+		    <version>2.0</version>
+		</dependency>		
+		
+		<!-- https://mvnrepository.com/artifact/io.javaslang/javaslang -->
+		<dependency>
+		    <groupId>io.javaslang</groupId>
+		    <artifactId>javaslang</artifactId>
+		    <version>2.0.5</version>
+		</dependency>
+		
 
 	</dependencies>
 

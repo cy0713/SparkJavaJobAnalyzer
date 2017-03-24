@@ -14,7 +14,7 @@ public class SimpleLogAnalyzer implements TestTask{
 		try{
 			Stream<String> myStream = Files.lines(Paths.get(inputFile));
 			long lines = myStream.filter(s -> s.contains("Hamlet"))
-								 .map(l -> l)
+								 .map(l -> l.toString())
 								 .filter(s -> s.length()>10)
 								 .count();
 			builder.append(lines);

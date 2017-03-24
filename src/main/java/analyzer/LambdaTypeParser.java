@@ -5,10 +5,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import main.java.graph.GraphNode;
 
@@ -22,14 +20,8 @@ public class LambdaTypeParser {
 	
 	Pattern functionBasedLambdas = Pattern.compile("(map|flatMap)");
 
-	private static final Map<String, Integer> argumentsToInfer = new HashMap<>();
 	private static final int FIRST_ARGUMENT = 0;
 	private static final int SECOND_ARGUMENT = 1;
-	
-	static{
-		argumentsToInfer.put("java.util.function.Predicate", 1);
-		argumentsToInfer.put("java.util.function.Function", 2);	
-	}
 
 	public LambdaTypeParser(String lambdaRawType) {
 		this.lambdaRawType = lambdaRawType;
@@ -59,7 +51,14 @@ public class LambdaTypeParser {
 			else functionalInterface = "java.util.function.Predicate";
 		}
 		String inferredArgument = null;
-		for (int i=0; i<argumentsToInfer.get(functionalInterface); i++){
+		//Get the number of types to infer for this specific lambda
+		int numArgs = 1;
+		try {
+			numArgs = Class.forName(functionalInterface).getTypeParameters().length;
+		} catch (SecurityException | ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		for (int i=0; i<numArgs; i++){
 			//First, check that the argument is actually inexistent/incorrect
 			if (!arguments.isEmpty() && arguments.size()>i){
 				if (undefinedGeneric(arguments.get(i))) arguments.remove(i);
@@ -69,8 +68,7 @@ public class LambdaTypeParser {
 			if (i==FIRST_ARGUMENT){				
 				List<String> previousNodeArguments = new LambdaTypeParser(
 						node.getPreviousNode().getFunctionType()).getArguments();
-				inferredArgument = previousNodeArguments.get(previousNodeArguments.size()-1);
-				//System.out.println("Inferred first argument from previous lambda: " + inferredArgument);				
+				inferredArgument = previousNodeArguments.get(previousNodeArguments.size()-1);			
 				inferredArgument = checkArgument(inferredArgument, node);
 				arguments.add(0,inferredArgument);
 			//If we have to infer the second argument, look onwards on graph						
@@ -80,10 +78,9 @@ public class LambdaTypeParser {
 				//Check if previous node has arguments
 				nextNodeArguments = checkArgument(nextNodeArguments, node);
 				//Check if the argument is correct	
-				inferredArgument = nextNodeArguments.get(0);
+				inferredArgument = checkArgument(nextNodeArguments.get(0), node);
 				if (lambdaMethod.equals("flatMap")) {
-					inferredArgument = inferredArgument.replace("? super ", "").replace("? extends ", "");
-					inferredArgument = "? extends Stream<"+inferredArgument.substring(0)+">";
+					inferredArgument = "Stream<"+inferredArgument.substring(0)+">";
 				}
 				if (arguments.size() > 1) arguments.remove(arguments.size()-1);
 				arguments.add(inferredArgument);
@@ -94,18 +91,19 @@ public class LambdaTypeParser {
 
 	private String checkArgument(String inferredArgument, GraphNode node) {
 		if (undefinedGeneric(inferredArgument)){
-			System.err.println("WARNING! We cannot infer the INPUT type for: " + node.getToExecute());
+			System.err.println("WARNING! We cannot infer the parameter type for: " +
+					inferredArgument + " in " + node.getToExecute());
 			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
-			return "? extends java.lang.String";
+			return "java.lang.String";
 		}		
 		return inferredArgument;
 	}
 	
 	private List<String> checkArgument(List<String> nextNodeArguments, GraphNode node) {
 		if (nextNodeArguments.isEmpty()){
-			System.err.println("WARNING! We cannot infer the OUTPUT type for: " + node.getToExecute());
+			System.err.println("WARNING! We cannot find next node parameters for: " + node.getToExecute());
 			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
-			return Arrays.asList("? extends java.lang.String");
+			return Arrays.asList("java.lang.String");
 		}
 		return nextNodeArguments;
 	}
@@ -127,43 +125,29 @@ public class LambdaTypeParser {
 	 */
 	private void setFirstLambdaInputTypeAsString() {
 		if (!arguments.isEmpty()) arguments.remove(0);
-		arguments.add(0, "? extends java.lang.String");
+		arguments.add(0, "java.lang.String");
 	}
 	
 	private void parseArgumentsFromRawType(String rawTypeOfLambda) {
 		rawTypeOfLambda = rawTypeOfLambda.substring(rawTypeOfLambda.indexOf("<")+1);
-		int endParamPos;
-		int iniParamPos = endParamPos = 0;
-		//If there is any argument, let's go for it
-		while (true){
-			//Check if there is an argument to parse
-			Optional<Integer> checkForParam = getCorrectParameterIndex(
-					rawTypeOfLambda.substring(iniParamPos));
-			if (!checkForParam.isPresent()) break;
-			//Parse and extract the argument as it comes from JavaSymbolSolver
-			iniParamPos += checkForParam.get();
-			if (rawTypeOfLambda.startsWith("? super ")) 
-				rawTypeOfLambda = rawTypeOfLambda.substring("? super ".length());
-			if (rawTypeOfLambda.startsWith("? extends ")) 
-				rawTypeOfLambda = rawTypeOfLambda.substring("? extends ".length());
-			//System.out.println(rawTypeOfLambda.substring(iniParamPos));
-			checkForParam = getCorrectParameterIndex(
-					rawTypeOfLambda.substring(iniParamPos));
-			if (!checkForParam.isPresent()) endParamPos = rawTypeOfLambda.lastIndexOf(">");
-			else endParamPos = checkForParam.get()-2;
-			String foundParam = rawTypeOfLambda.substring(iniParamPos, 
-					iniParamPos+endParamPos);
-			arguments.add("? extends " + foundParam);
-			rawTypeOfLambda = rawTypeOfLambda.substring(foundParam.length());
-			if (rawTypeOfLambda.startsWith(", ")) 
-				rawTypeOfLambda = rawTypeOfLambda.substring(2);
+		int argumentGenericsCount = 0;
+		//If there is a single argument, just get it
+		if (!rawTypeOfLambda.contains(", ")){
+			arguments.add(rawTypeOfLambda.substring(0, rawTypeOfLambda.indexOf(">")));
+			return;
+		}
+		rawTypeOfLambda = rawTypeOfLambda.substring(0, rawTypeOfLambda.length()-1);
+		//If there are multiple with generics, then iterate
+		StringBuilder foundParam = new StringBuilder();
+		for (String arg: rawTypeOfLambda.split(", ")){
+			if (arg.contains("<")) argumentGenericsCount++;
+			if (arg.contains(">")) argumentGenericsCount--;
+			foundParam.append(arg);
+			if (argumentGenericsCount==0) {
+				arguments.add(foundParam.toString());
+				foundParam = new StringBuilder();
+			}
 		}		
-	}
-
-	private Optional<Integer> getCorrectParameterIndex(String toParse) {
-		Stream<Integer> indexes = Arrays.asList(toParse.indexOf("? super "),
-				toParse.indexOf("? extends ")).stream();
-		return indexes.filter(i -> i>-1).min((a,b) -> a.compareTo(b));
 	}
 	
 	private boolean hasDefinedGenerics() {
@@ -174,9 +158,7 @@ public class LambdaTypeParser {
 	}
 
 	private boolean undefinedGeneric(String parameter){
-		return parameter.startsWith("? extends ")?
-			parameter.substring("? extends ".length()).length()==1:
-			parameter.substring("? super ".length()).length()==1;
+		return parameter.trim().length()==1;
 	}
 	
 	private boolean hasFunctionalInterface() {
