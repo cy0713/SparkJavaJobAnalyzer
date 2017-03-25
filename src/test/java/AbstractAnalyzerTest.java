@@ -1,14 +1,5 @@
 package test.java;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -17,95 +8,72 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import com.ibm.storlet.common.StorletInputStream;
-import com.ibm.storlet.common.StorletLogger;
-import com.ibm.storlet.common.StorletObjectOutputStream;
-import com.ibm.storlet.common.StorletOutputStream;
-
 import junit.framework.TestCase;
-import test.java.storlet.LambdaPushdownStorlet;
+import main.java.analyzer.SparkJavaJobAnalyzer;
+import main.java.compiler.JobCompiler;
 
 public abstract class AbstractAnalyzerTest extends TestCase{
-	
-	protected final String INPUT_FILE_NAME = "test_data/hamlet.txt"; //meter_gen.csv;
-	//protected final String OUTPUT_FILE_NAME = "test_data/meter.results";
-	protected final String OUTPUT_MD_FILE_NAME = "test_data/output_record_md.txt";
-	protected final String LOGGER_FILE_NAME = "test_data/logger";	
 	
 	protected final String TEST_PATH = "/media/raul/Data/Documentos/Recerca/"+
         	"Proyectos/IOStack/Code/SparkJavaJobAnalyzer/src/test/resources";
 	
-	protected String normalResult;
-	protected String pushdownResult;
+	protected String outputStorletFileNormal = "test_data/storlet_output." + 
+				this.getClass().getName() + "_normal";
+	protected String outputStorletFilePushdown = "test_data/storlet_output." + 
+				this.getClass().getName() + "_pushdown";
+	protected String jobResultNormal = "test_data/job_result." + this.getClass().getName() + 
+			"_normal";
+	protected String jobResultPushdown = "test_data/job_result." + this.getClass().getName() + 
+			"_pushdown";
 	
+	//These  fields are required to be initialized by every tests that extends this class
+	protected TestTask analyticsJob;
+	protected String jobToAnalyze;	
+	protected String inputStorletFile; //meter_gen.csv;
+	
+	//These fields will be filled after the job analysis result
 	protected String modifiedJobCode;
 	protected HashMap<String, String> lambdaMap = new HashMap<>();	
 	
-	protected void executePushdownStorlet(HashMap<String, String> lambdaMap, String outputFile){
+	public void testAnalyze(){
+
+		/*
+		 * STEP 1: Execute the analytics task without pushdown
+		 */
+		TestUtils testUtils = new TestUtils();
+		testUtils.executePushdownStorlet(new HashMap<>(), inputStorletFile, outputStorletFileNormal);
 		
-		try {
-			
-			FileInputStream infile = new FileInputStream(INPUT_FILE_NAME);
-			FileOutputStream outfile = new FileOutputStream(outputFile);
-			FileOutputStream outfile_md = new FileOutputStream(OUTPUT_MD_FILE_NAME);
-	
-			HashMap<String, String> md = new HashMap<String, String>();
-			StorletInputStream inputStream1 = new StorletInputStream(infile.getFD(), md);
-	        StorletObjectOutputStream outStream = new StorletObjectOutputStream(outfile.getFD(), md, outfile_md.getFD());
-	        
-	        ArrayList<StorletInputStream> inputStreams = new ArrayList<StorletInputStream>();
-	        inputStreams.add(inputStream1);	        
-	        ArrayList<StorletOutputStream> outStreams = new ArrayList<StorletOutputStream>();
-	        outStreams.add(outStream);
-	        
-	        LambdaPushdownStorlet storlet = new LambdaPushdownStorlet();
-	        
-			FileOutputStream loggerFile = new FileOutputStream(LOGGER_FILE_NAME);					
-			StorletLogger logger = new StorletLogger(loggerFile.getFD());	
-			
-			System.out.println("before storlet");
-			storlet.invoke(inputStreams, outStreams, lambdaMap, logger);
-			System.out.println("after storlet");			
-			
-			infile.close();
-			outfile.close();
-			outfile_md.close();
-			loggerFile.close();
-			
-		}catch (Exception e) {
-			System.out.println("Exception executing LambdaPushdown Storlet!");
-			e.printStackTrace();
-		}
+		//We execute the analytics job on the output of the storlet
+		testUtils.writeTaskOutputResult(analyticsJob.doTask(outputStorletFileNormal), jobResultNormal);
+		//Make sure that the result of the storlet without lambdas is the same as the input
+		assertTrue(testUtils.compareFiles(inputStorletFile, outputStorletFileNormal));
 		
-	}
-	
-	/*
-	 * Simple way to write expected small outputs into a file for later comparison
-	 */
-	protected void writeTaskOutputResult(StringBuilder builder, String outputFile){
-		FileWriter outputStream;
-		try {
-			outputStream = new FileWriter(new File(outputFile));
-			outputStream.write(builder.toString());
-			outputStream.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	protected boolean compareFiles(String file1, String file2){		
-		try {
-			byte[] f1 = Files.readAllBytes(Paths.get(file1));
-			byte[] f2 = Files.readAllBytes(Paths.get(file2));
-			System.out.println("Size of file " + file1 + ": " + f1.length);
-			System.out.println("Size of file " + file2 + ": " + f2.length);
-			System.out.println("Relative size difference between files: " + 
-					new Double(f1.length-f2.length)/new Double(f1.length) + "%");
-			return Arrays.equals(f1, f2);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
+		/*
+		 * STEP 2: Execute pushdown analysis on the analytics task
+		 */     
+        SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
+        // visit and print the methods names
+        String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze);
+        		//"/java8streams_jobs/SimpleLogAnalyzer.java");
+        //Load the results of the job analyzer (lambda map and modified code)
+        loadAnalyzerResults(pushdownAnalysisResult);
+        
+        /*
+		 * STEP 3: Execute again the analytics task and also the lambdas at the storage side
+		 */
+        testUtils.executePushdownStorlet(lambdaMap, inputStorletFile, outputStorletFilePushdown);
+        //Make sure that the result of the storlet with lambdas is different to the input
+      	assertFalse(testUtils.compareFiles(inputStorletFile, outputStorletFilePushdown));
+      	System.out.println(modifiedJobCode);
+		analyticsJob = (TestTask) new JobCompiler().compileFromString(analyticsJob.getClass()
+												   .getSimpleName(), modifiedJobCode);
+		//We execute the analytics job on the output of the storlet
+		testUtils.writeTaskOutputResult(analyticsJob.doTask(outputStorletFilePushdown), jobResultPushdown);
+		
+		/*
+		 * STEP 4: Compare that the job results of pushdown and no pushdown are the same
+		 */
+		assertTrue(testUtils.compareFiles(jobResultPushdown, jobResultNormal));		
 	}
 	
 	protected void loadAnalyzerResults (String jobAnalyzerOutput) {
@@ -125,5 +93,4 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 			e.printStackTrace();
 		}
 	}
-
 }

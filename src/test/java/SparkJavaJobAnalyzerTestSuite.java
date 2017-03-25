@@ -9,6 +9,6 @@ import test.resources.java8streams_jobs.WordCountJava8Streams;
 @Suite.SuiteClasses({
         SimpleLogAnalyzerTest.class,
         SimpleLogAnalyzer2Test.class,
-        //WordCountJava8Streams.class
+        WordCountJava8Streams.class
 })
 public class SparkJavaJobAnalyzerTestSuite {}
