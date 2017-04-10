@@ -1,8 +1,15 @@
 package test.java.storlet;
 
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -10,10 +17,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import com.ibm.storlet.common.StorletException;
@@ -51,24 +59,24 @@ import main.java.pl.joegreen.lambdaFromString.TypeReference;
 
 public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	
-	//FIXME: To initialize the compiler, the library uses a dummy text file 
-	//(helperClassTemplate.txt) that should at the moment exist to avoid errors
 	protected LambdaFactory lambdaFactory = LambdaFactory.get();
 	
 	//This map stores the signature of a lambda as a key and the lambda object as a value.
 	//It acts as a cache of repeated lambdas to avoid compilation overhead of already compiled lambdas.
-	protected Map<String, Function> lambdaCache = new HashMap<>();	
+	protected Map<String, Function> lambdaCache = new HashMap<>();
+	protected Map<String, Collector> collectorCache = new HashMap<>();
 	
-	protected Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap)\\s*?\\(");
+	protected Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap|collect)\\s*?\\(");
 	
 	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
 	
 	@Override
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected Stream writeYourLambdas(Stream<String> stream) {
 		long initime = System.currentTimeMillis();
 		//list of functions to apply to each record
         List<Function<Stream, Stream>> pushdownFunctions = new ArrayList<>();
+        boolean hasTerminalLambda = false;
         
         //Sort the keys in the parameter map according to the desired order
         List<String> sortedMapKeys = new ArrayList<String>();
@@ -87,18 +95,22 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         			lambdaTypeAndBody.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR));
         	String lambdaBody = lambdaTypeAndBody.substring(
         			lambdaTypeAndBody.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)+1);
-        	System.err.println("**>>New lambda to pushdown: " + lambdaType + " ->>> " + lambdaBody);
+        	System.out.println("**>>New lambda to pushdown: " + lambdaType + " ->>> " + lambdaBody);
         	
         	//Check if we have already compiled this lambda and exists in the cache
 			if (lambdaCache.containsKey(lambdaBody)) continue;
 			
+			//FIXME: Investigate how we can compile things like count, sum and collect
 			//Compile the lambda and add it to the cache
-			lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));
-			
+			if (lambdaBody.startsWith("collect")){
+				//collectorCache.put(lambdaBody, getCollectorObject(lambdaBody, lambdaType));
+		        hasTerminalLambda = true;
+			} else { lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));			
 			//Add the new compiled function to the list of functions to apply to the stream
 			pushdownFunctions.add(lambdaCache.get(lambdaBody));
+			}
         }
-        System.err.println("Number of lambdas to execute: " + pushdownFunctions.size());
+        System.out.println("Number of lambdas to execute: " + pushdownFunctions.size());
         
         //Concatenate all the functions to be applied to a data stream
         Function allPushdownFunctions = pushdownFunctions.stream()
@@ -106,7 +118,8 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         
         System.out.println("Compilation time: " + (System.currentTimeMillis()-initime) + "ms");
         //Apply all the functions on each stream record
-    	return  (Stream) allPushdownFunctions.apply(stream);
+    	return hasTerminalLambda ? applyTerminalOperation((Stream) allPushdownFunctions.apply(stream)):
+    							   (Stream) allPushdownFunctions.apply(stream);
 	}	
 	
 	@Override
@@ -139,6 +152,47 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		logger.emitLog(this.getClass().getName() + " -- Elapsed [ms]: "+((after-before)/1000000L));			
 	}
 	
+	@SuppressWarnings("unchecked")
+	protected void applyLambdasOnDataStream(InputStream is, OutputStream os, StorletLogger logger) {
+		try{
+			//Convert InputStream as a Stream, and apply lambdas
+			BufferedWriter writeBuffer = new BufferedWriter(new OutputStreamWriter(os, CHARSET), BUFFER_SIZE);
+			BufferedReader readBuffer = new BufferedReader(new InputStreamReader(is, CHARSET), BUFFER_SIZE); 
+			writeYourLambdas(readBuffer.lines().parallel()).forEach(line -> {	
+				try {
+					//FIXME: We have to call toString here to write a String from unknown Stream items
+					writeBuffer.write(line.toString());  
+					writeBuffer.newLine();
+				}catch(IOException e){
+					logger.emitLog(this.getClass().getName() + " raised IOException: " + e.getMessage());
+					e.printStackTrace(System.err);
+				}
+			});
+			writeBuffer.close();
+			is.close();
+			os.close();
+		} catch (IOException e1) {
+			logger.emitLog(this.getClass().getName() + " raised IOException 2: " + e1.getMessage());
+			e1.printStackTrace(System.err);
+		}		
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param writeYourLambdas
+	 * @return
+	 */
+	private Stream applyTerminalOperation(Stream writeYourLambdas) {
+		// TODO: In this method we have to treat differently the supported terminal operations. There are
+		// operations that return collections of objects, normally from collect operations (List, Map)
+		// and other operations that return just a single number (count, sum, min, max). We have to deal
+		// with these cases and return the result as a (non-parallel) stream (otherwise the output of the
+		// processing will show errors related to uncontrolled writes on the output stream).
+		return ((Map) writeYourLambdas.collect(groupingBy(SimpleEntry<String, Long>::getKey, counting())))
+									  .entrySet().stream();
+	}
+
 	private void writeByteBasedStreams(InputStream is, OutputStream os, StorletLogger logger) {
 		byte[] buffer = new byte[BUFFER_SIZE];
 		int len;		
@@ -176,6 +230,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 					lambdaType.substring(0, lambdaType.indexOf("<"))));
 			function = (s) -> {						
 				try {
+					System.out.println(lambdaSignature);
 					return theMethod.invoke(((Stream) s), lambdaFactory.createLambdaUnchecked(
 						getLambdaBody(lambdaSignature), getLambdaType(methodName, lambdaType)));
 				} catch (IllegalAccessException|InvocationTargetException e) {
@@ -192,8 +247,35 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		return function;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private Collector getCollectorObject(String lambdaSignature, String lambdaType) {
+		String methodName = lambdaSignature.substring(0, lambdaSignature.indexOf("("));	
+		Collector function = null;
+		try {
+			//Get the method to invoke via reflection
+			Method theMethod = Stream.class.getMethod(methodName, Class.forName(
+					lambdaType.substring(0, lambdaType.indexOf("<"))));
+			/*function = (s) -> {						
+				try {
+					System.out.println(lambdaSignature);
+					return theMethod.invoke(((Stream) s), lambdaFactory.createLambdaUnchecked(
+						getLambdaBody(lambdaSignature), getLambdaType(methodName, lambdaType)));
+				} catch (IllegalAccessException|InvocationTargetException e) {
+					System.err.println("Error invoking a pushdown method on the Stream class.");
+					e.printStackTrace();
+				}
+				return null;		
+			};*/
+		} catch (NoSuchMethodException | SecurityException | IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		}		
+		return function;
+	}
+	
 	/**
-	 * Get the 
+	 * 
 	 * 
 	 * @param methodName
 	 * @param lambdaType

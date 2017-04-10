@@ -50,6 +50,7 @@ public abstract class LambdaStreamsStorlet implements IStorlet {
 	 * @param Raw data stream
 	 * @return Processed data stream
 	 */	
+	@SuppressWarnings("rawtypes")
 	protected abstract Stream writeYourLambdas(Stream<String> stream);
 	
 	/***

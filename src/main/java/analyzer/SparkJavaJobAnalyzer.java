@@ -45,8 +45,10 @@ public class SparkJavaJobAnalyzer {
 	
 	private final String targetedDatasets = "(Stream|RDD|JavaRDD|JavaPairRDD)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
-	private final String pushableLambdas = "(map|filter|flatMap|mapToPair|reduceByKey)";
-	private final String RDDActions = "(count|cache)";
+	
+	private final String pushableIntermediateLambdas = "(map|filter|flatMap|collect|mapToPair|reduceByKey)";
+	private final String pushableTerminalLambdas = "(collect|count)";
+	//private final String RDDActions = "(count|cache)";
 	
 	private final static String migrationRulesPackage = "main.java.rules.migration.";
 	private final static String modificationRulesPackage = "main.java.rules.modification.";
@@ -109,11 +111,13 @@ public class SparkJavaJobAnalyzer {
         	for (GraphNode node: identifiedStreams.get(key)){
         		if (node.getToPushdown()!=null)
         			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), node.getFunctionType()));
-        		if (node.isTransformation())
-        			modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), node.getCodeReplacement());
+        		//if (node.isTransformation())
+        		String toReplace = "";
+        		if (node.getCodeReplacement()!="") toReplace =  "."+node.getCodeReplacement();
+        		modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), toReplace);
         	}
         }  
-        System.out.println(modifiedJobCode);
+        //System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
@@ -179,15 +183,15 @@ public class SparkJavaJobAnalyzer {
 	 */
 	private class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		@Override
-        public void visit(MethodCallExpr methodExpression, Object arg) {	
-			
+        public void visit(MethodCallExpr methodExpression, Object arg) {				
 			System.out.println("methodExpression: " + methodExpression);
 	        
-			//Check if the current expression is related to any stream
+			//TODO: Limitation here, we need a variable declared to find it, so this
+			//does not work with an anonymous declaration like createStream().stream().lambdas...
+			//Check if the current expression is related to any stream of interest
 			boolean isExpressionOnStream = false;
 			String streamKeyString = "";
 			for (String streamKey: identifiedStreams.keySet()){
-				//FIXME: This should be done with nodes, not with strings but is not working...
 				isExpressionOnStream = methodExpression.toString().contains(streamKey+".".toString());
 				if (isExpressionOnStream) {
 					streamKeyString = streamKey;
@@ -197,7 +201,8 @@ public class SparkJavaJobAnalyzer {
 			//If this line is not interesting to us, just skip
 			if (!isExpressionOnStream) return;			
 			
-			//Leave only the expression that is interesting to us, on the stream variable
+			//Leave only the expression that is interesting to us, on the stream variable. We need this
+			//as the expression can be within a System.out.print() method, for example
 			Expression innerLambdaCall = null;
 			boolean foundCorrectExpression = methodExpression.toString().startsWith(streamKeyString);
 			int expressionIndex = 0;
@@ -205,10 +210,9 @@ public class SparkJavaJobAnalyzer {
 				innerLambdaCall = methodExpression.getArgument(expressionIndex);
 				foundCorrectExpression = innerLambdaCall.toString().startsWith(streamKeyString);
 			}
-			
+
 			//Find the lambdas in the (hopefully) clean expression
-			List<Node> lambdas = new LinkedList<>();
-			
+			List<Node> lambdas = new LinkedList<>();			
 			String expressionString = "";
 			if (innerLambdaCall != null){
 				innerLambdaCall.accept(new LambdaExtractor(), lambdas);				
@@ -217,46 +221,43 @@ public class SparkJavaJobAnalyzer {
 				methodExpression.accept(new LambdaExtractor(), lambdas);
 				expressionString = methodExpression.toString();
 			}			
-			//Parsed lambdas contain the <lambdaSignature, lambdaType>
-			List<SimpleEntry<String, String>> parsedLambdas = new ArrayList<>();
+			//Store the lambdas in the correct order, as they are executed
+			Collections.reverse(lambdas);
 			
-			//Get the entire lambda functions that can be offloaded
-			for (Node n: lambdas){    		    
+			//Get the entire intermediate lambda functions that can be pushed down
+			int lastLambdaIndex = 0;
+			for (Node n: lambdas){    		
+				System.out.println("->>>" + n);
 				//Take advantage of this pass to try to infer the types of the lambdas
 				//Anyway, this will require a further process later on
-				String lambdaType = getLambdaTypeFromNode(n);
-							
-				Pattern pattern = Pattern.compile("\\." + pushableLambdas + "+\\(?\\S+" + 
-										Pattern.quote(n.toString()) + "?\\S+\\)");
+				String lambdaType = getLambdaTypeFromNode(n);							
+				Pattern pattern = Pattern.compile("\\." + pushableIntermediateLambdas + 
+									"+\\(?\\S+" + Pattern.quote(n.toString()) + "?\\S+\\)");
 		        Matcher matcher = pattern.matcher(expressionString);
-
 		        //Add these lambda calls to the list of calls for the particular stream
 		        try {
 		        	matcher.find();
 			        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-			        parsedLambdas.add(new SimpleEntry<String, String>(matchedLambda, lambdaType));	
+			        identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
+			        lastLambdaIndex = matcher.end();
 		        }catch(IllegalStateException e) {
 		        	System.err.println("Error parsing the lambda. Probably you need to add how to "
 		        			+ "treat the following function in this code: " + expressionString);
 		        	e.printStackTrace();
 		        }
 			}			
-			//Store the lambdas in the correct order, as they are executed
-			Collections.reverse(parsedLambdas);
-			Pattern pattern = Pattern.compile("\\." + RDDActions + "+\\(\\)");
-			//Add the found lambdas and actions to the flow control graph
-			for (SimpleEntry<String, String> lambdaTuple: parsedLambdas){
-				String theLambda = lambdaTuple.getKey();
-				String lambdaType = lambdaTuple.getValue();
-				Matcher matcher = pattern.matcher(theLambda);
-		        if (matcher.find()){
-		        	String matchedAction = theLambda.substring(matcher.start()+1, matcher.end());
-		        	//TODO: Not sure if the type of the lambda here is correct
-		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(
-		        			theLambda.substring(0, matcher.start()), lambdaType, true);
-		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, false);
-		        }else identifiedStreams.get(streamKeyString).appendOperationToRDD(theLambda, lambdaType, true);
-			}
+			
+			Pattern pattern = Pattern.compile("\\." + pushableTerminalLambdas);
+			Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
+			//Add the terminal lambdas, if they exist
+			//TODO: At the moment we assume a single final terminal operation in the expression
+			if (lastLambdaIndex<expressionString.length() && matcher.find()){
+				String matchedAction = expressionString.substring(lastLambdaIndex+matcher.start()+1, 
+																  expressionString.length());
+				//TODO: How do we get the type of a collector's input??
+				String lambdaType = "java.util.stream.Collector<Object, ?, Map<Object, Long>>";
+				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, lambdaType, false);
+			}			
     	}
 
 		private String getLambdaTypeFromNode(Node n) {

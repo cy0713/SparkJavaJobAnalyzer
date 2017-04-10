@@ -14,6 +14,7 @@ public class SupportedLambdaTypes {
 	private static Map<String, TypeReference> supportedMapTypes = new HashMap<>();
 	private static Map<String, TypeReference> supportedFilterTypes = new HashMap<>();
 	private static Map<String, TypeReference> supportedFlatMapTypes = new HashMap<>();
+	private static Map<String, TypeReference> supportedCollectTypes = new HashMap<>();
 	
 	static {
 		supportedMapTypes.put("java.util.function.Function<java.lang.String, java.lang.String>", 
@@ -35,11 +36,15 @@ public class SupportedLambdaTypes {
 				new TypeReference<Predicate<SimpleEntry<String, Long>>>() {});
 		
 		supportedFlatMapTypes.put("java.util.function.Function<java.lang.String, java.util.stream.Stream<java.lang.String>>", 
+				new TypeReference<Function<String, Stream<String>>>(){});		
+		
+		supportedCollectTypes.put("java.util.stream.Collector<Object, ?, Map<Object, Long>>", 
 				new TypeReference<Function<String, Stream<String>>>(){});
 	}
 	
 	public static TypeReference getMapType(String mapType){return supportedMapTypes.get(mapType);}
 	public static TypeReference getFilterType(String filterType){return supportedFilterTypes.get(filterType);}
 	public static TypeReference getFlatMapType(String flatMapType){return supportedFlatMapTypes.get(flatMapType);}
+	public static TypeReference getCollectType(String collectType){return supportedCollectTypes.get(collectType);}
 
 }
