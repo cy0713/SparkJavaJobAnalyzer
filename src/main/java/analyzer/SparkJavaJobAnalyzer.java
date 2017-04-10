@@ -232,7 +232,7 @@ public class SparkJavaJobAnalyzer {
 				//Anyway, this will require a further process later on
 				String lambdaType = getLambdaTypeFromNode(n);							
 				Pattern pattern = Pattern.compile("\\." + pushableIntermediateLambdas + 
-									"+\\(?\\S+" + Pattern.quote(n.toString()) + "?\\S+\\)");
+									"+\\(?\\S+" + Pattern.quote(n.toString()) + "\\)");
 		        Matcher matcher = pattern.matcher(expressionString);
 		        //Add these lambda calls to the list of calls for the particular stream
 		        try {
@@ -254,8 +254,8 @@ public class SparkJavaJobAnalyzer {
 			if (lastLambdaIndex<expressionString.length() && matcher.find()){
 				String matchedAction = expressionString.substring(lastLambdaIndex+matcher.start()+1, 
 																  expressionString.length());
-				//TODO: How do we get the type of a collector's input??
-				String lambdaType = "java.util.stream.Collector<Object, ?, Map<Object, Long>>";
+				//We do not need to know the collector type parametrization
+				String lambdaType = "java.util.stream.Collector";
 				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, lambdaType, false);
 			}			
     	}

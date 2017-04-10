@@ -54,7 +54,6 @@ public abstract class AbstractAnalyzerTest extends TestCase{
         SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
         // visit and print the methods names
         String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze);
-        		//"/java8streams_jobs/SimpleLogAnalyzer.java");
         //Load the results of the job analyzer (lambda map and modified code)
         loadAnalyzerResults(pushdownAnalysisResult);
         
@@ -65,7 +64,6 @@ public abstract class AbstractAnalyzerTest extends TestCase{
         //Make sure that the result of the storlet with lambdas is different to the input
       	assertFalse(testUtils.compareFiles(inputStorletFile, outputStorletFilePushdown));
 
-      	System.out.println("MODIFIED JOB CODE: " + modifiedJobCode);
 		analyticsJob = (TestTask) new JobCompiler().compileFromString(analyticsJob.getClass()
 												   .getSimpleName(), modifiedJobCode);
 		//We execute the analytics job on the output of the storlet
@@ -82,6 +80,7 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		JSONObject jsonObj = null;
 		try {
 			jsonObj = (JSONObject) parser.parse(jobAnalyzerOutput);
+			@SuppressWarnings("unchecked")
 			Iterator<JSONObject> lambdas =  ((JSONArray) jsonObj.get("lambdas")).iterator();
 			int index = 0;
 			while (lambdas.hasNext()){

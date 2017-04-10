@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
+//TODO: THis import shouldnt be here, it should be added to the modified job code
 import static java.util.stream.Collectors.summingLong;
 
 import test.java.TestTask;
@@ -25,7 +26,7 @@ public class WordCountJava8Streams implements TestTask{
 			Map<String, Long> myStream2 = myStream.flatMap(line -> Arrays.stream(line.trim().split(" ")))
             		.map(word -> word.replaceAll("[^a-zA-Z]", "").toLowerCase().trim())
             		.map(word -> new SimpleEntry<String, Long>(word, (long) 1))
-            		.collect(groupingBy(SimpleEntry::getKey, counting()));	
+            		.collect(groupingBy(SimpleEntry<String, Long>::getKey, counting()));	
 			
 			for (String key: new TreeMap<>(myStream2).keySet()){
 				builder.append(key + " " + myStream2.get(key)+"\n");
