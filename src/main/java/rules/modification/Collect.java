@@ -12,6 +12,9 @@ public class Collect implements LambdaRule {
 			graphNode.setCodeReplacement("collect(groupingBy(SimpleEntry<String, Long>::getKey, summingLong(SimpleEntry::getValue)))");
 		if (graphNode.getLambdaSignature().equals("collect(Collectors.toList())"))
 			graphNode.setCodeReplacement("collect(Collectors.toList())");
+		if (graphNode.getLambdaSignature().equals("collect(Collectors.maxBy(String::compareTo))"))
+			graphNode.setCodeReplacement("collect(Collectors.maxBy(String::compareTo))");
+		if (graphNode.getLambdaSignature().equals("collect(Collectors.minBy(String::compareTo))"))
+			graphNode.setCodeReplacement("collect(Collectors.minBy(String::compareTo))");
 	}
-
 }

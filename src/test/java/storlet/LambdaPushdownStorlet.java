@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,11 +65,15 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	protected Map<String, Collector> collectorCache = new HashMap<>();
 	
 	private Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap|collect)\\s*?\\(");
-	private Pattern intermediateLambdas = Pattern.compile("(map|filter|flatMap|collect|mapToPair|reduceByKey)");
-	private Pattern terminalLambdas = Pattern.compile("(collect|count)");
+	//private Pattern intermediateLambdas = Pattern.compile("(map|filter|flatMap|collect|mapToPair|reduceByKey)");
+	//private Pattern terminalLambdas = Pattern.compile("(collect|count)");
 	
 	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
 	
+	public LambdaPushdownStorlet() {
+		new CollectorCompilationHelper().initializeCollectorCache(collectorCache);
+	}
+
 	@Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected Stream writeYourLambdas(Stream<String> stream) {
@@ -97,12 +103,18 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         	System.out.println("**>>New lambda to pushdown: " + lambdaType + " ->>> " + lambdaBody);
         	
         	//Check if we have already compiled this lambda and exists in the cache
-			if (lambdaCache.containsKey(lambdaBody) || collectorCache.containsKey(lambdaBody)) continue;
+			if (lambdaCache.containsKey(lambdaBody)) {
+				pushdownFunctions.add(lambdaCache.get(lambdaBody));
+				continue;
+			}else if (collectorCache.containsKey(lambdaBody)){
+				pushdownCollector = collectorCache.get(lambdaBody);
+				hasTerminalLambda = true;
+				continue;
+			}
 			
 			//Compile the lambda and add it to the cache
 			if (lambdaBody.startsWith("collect")){
-				pushdownCollector = //groupingBy(SimpleEntry<String, Long>::getKey, counting()); 
-									getCollectorObject(lambdaBody, lambdaType);
+				pushdownCollector = getCollectorObject(lambdaBody, lambdaType);
 				collectorCache.put(lambdaBody, pushdownCollector);
 		        hasTerminalLambda = true;
 			} else { 
@@ -195,6 +207,11 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		Object collectorResult = functionsOnStream.collect(terminalOperation);
 		if (collectorResult instanceof Map) return ((Map) collectorResult).entrySet().stream();
 		if (collectorResult instanceof List) return ((List) collectorResult).stream();
+		if (collectorResult instanceof Set) return ((Set) collectorResult).stream();
+		if (collectorResult instanceof Optional){
+			Optional result = (Optional) collectorResult;
+			return result.isPresent()? Stream.of(result.get()): Stream.of("");
+		}
 		return Stream.of(collectorResult);		
 	}
 
@@ -257,7 +274,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		Collector function = null;
 		try {
 			return CollectorCompilationHelper.getCollectorObject(
-						getLambdaBody(lambdaSignature), lambdaType, lambdaFactory);
+										getLambdaBody(lambdaSignature), lambdaType);
 		} catch (SecurityException | IllegalArgumentException e) {
 			e.printStackTrace();
 		}		

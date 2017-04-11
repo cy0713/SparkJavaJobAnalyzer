@@ -272,11 +272,7 @@ public class SparkJavaJobAnalyzer {
 				lastLambdaIndex = pos;
 				//At the moment, we do not need to know the collector type parameterization
 				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, "Collector", true);
-			}			
-			//Add other methods after the terminal operation, as they operate on the resulting object
-			/*if (lastLambdaIndex<expressionString.length())
-				identifiedStreams.get(streamKeyString).appendOperationToRDD(
-						expressionString.substring(lastLambdaIndex), null, false, false);*/
+			}
     	}
 
 		private String getLambdaTypeFromNode(Node n) {

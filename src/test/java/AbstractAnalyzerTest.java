@@ -73,6 +73,11 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		 * STEP 4: Compare that the job results of pushdown and no pushdown are the same
 		 */
 		assertTrue(testUtils.compareFiles(jobResultPushdown, jobResultNormal));		
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	protected void loadAnalyzerResults (String jobAnalyzerOutput) {

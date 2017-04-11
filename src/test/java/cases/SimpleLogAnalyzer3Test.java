@@ -1,5 +1,6 @@
-package test.java;
+package test.java.cases;
 
+import test.java.AbstractAnalyzerTest;
 import test.resources.java8streams_jobs.SimpleLogAnalyzer3;
 
 public class SimpleLogAnalyzer3Test extends AbstractAnalyzerTest{	
