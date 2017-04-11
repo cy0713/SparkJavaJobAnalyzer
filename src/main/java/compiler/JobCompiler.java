@@ -3,6 +3,13 @@ package main.java.compiler;
 import net.openhft.compiler.CachedCompiler;
 import net.openhft.compiler.CompilerUtils;
 
+/**
+ * Class that provides a simple compilation services for java classes
+ * in String objects.
+ * 
+ * @author Raul Gracia
+ *
+ */
 public class JobCompiler {
 	
 	private static final String COMPILED_JOB_PATH = "test.resources.java8streams_jobs";
@@ -24,5 +31,4 @@ public class JobCompiler {
 		}
 		return null;
 	 }
-
 }

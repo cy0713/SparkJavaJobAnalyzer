@@ -34,11 +34,22 @@ import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
 import main.java.rules.LambdaRule;
 
-//1.- Extract transformations and operations from RDDs
-//2.- Create a Control Flow Graph
-//3.- Analyze such graph to see if we can push down lambdas or not
-//4.- Modify the original file in the case a pushdown operation needs it
-
+/**
+ * We consider Spark jobs in Java as input for this class. Given that, 
+ * this class is intended to execute:
+ * 1.- Extract transformations and operations from RDDs
+ * 2.- Create a {@link FlowControlGraph} object per RDD
+ * 3.- Analyze such graph to see if we can push down lambdas or not
+ * 4.- Modify the original file in the case a pushdown operation needs it
+ * 
+ * The ultimate objective is to execute specific parts of the job in a stream
+ * fashion at the storage side (push down lambdas) and the remaining logic (modified 
+ * Spark job) as a usual job, so we obtain the same result but things like filtering,
+ * sums, min/max, and so on can be partially computed at the storage side.
+ * 
+ * @author Raul Gracia
+ *
+ */
 public class SparkJavaJobAnalyzer {
 	
 	private HashMap<String, FlowControlGraph> identifiedStreams = new HashMap<String, FlowControlGraph>();
@@ -117,7 +128,6 @@ public class SparkJavaJobAnalyzer {
         		modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), toReplace);
         	}
         }  
-        //System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
@@ -140,8 +150,7 @@ public class SparkJavaJobAnalyzer {
         }		
 	}
 
-	private void findTypesOfLambdasInGraph(FlowControlGraph flowControlGraph) {		
-		System.out.println(flowControlGraph);
+	private void findTypesOfLambdasInGraph(FlowControlGraph flowControlGraph) {	
 		//Here we try to fill the missing types of lambdas in the graph
 		for (GraphNode node: flowControlGraph){
 			if (!node.isTransformation()) continue;
@@ -149,8 +158,7 @@ public class SparkJavaJobAnalyzer {
 			//If the type is correctly set, go ahead
 			if (lambdaTypeParser.isTypeWellDefined()) continue;
 			//Otherwise, we have to check how to infer it
-			node.setFunctionType(lambdaTypeParser.solveTypeFromGraph(node));		
-			System.out.println(node.getFunctionType());
+			node.setFunctionType(lambdaTypeParser.solveTypeFromGraph(node));
 		}			
 	}
 
@@ -184,8 +192,7 @@ public class SparkJavaJobAnalyzer {
 	private class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		@Override
         public void visit(MethodCallExpr methodExpression, Object arg) {				
-			System.out.println("methodExpression: " + methodExpression);
-	        
+			System.out.println("methodExpression: " + methodExpression);	        
 			//TODO: Limitation here, we need a variable declared to find it, so this
 			//does not work with an anonymous declaration like createStream().stream().lambdas...
 			//Check if the current expression is related to any stream of interest
@@ -254,8 +261,8 @@ public class SparkJavaJobAnalyzer {
 			if (lastLambdaIndex<expressionString.length() && matcher.find()){
 				String matchedAction = expressionString.substring(lastLambdaIndex+matcher.start()+1, 
 																  expressionString.length());
-				//We do not need to know the collector type parametrization
-				String lambdaType = "java.util.stream.Collector";
+				//We do not need to know the collector type parameterization
+				String lambdaType = "Collector";
 				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, lambdaType, false);
 			}			
     	}

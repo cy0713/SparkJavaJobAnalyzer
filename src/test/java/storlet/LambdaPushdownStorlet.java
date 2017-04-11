@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,8 +28,6 @@ import com.ibm.storlet.common.StorletOutputStream;
 
 import main.java.pl.joegreen.lambdaFromString.LambdaFactory;
 import main.java.pl.joegreen.lambdaFromString.TypeReference;
-import static java.util.stream.Collectors.counting;
-import static java.util.stream.Collectors.groupingBy;
 
 /**
  * 
@@ -102,7 +99,6 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         	//Check if we have already compiled this lambda and exists in the cache
 			if (lambdaCache.containsKey(lambdaBody) || collectorCache.containsKey(lambdaBody)) continue;
 			
-			//FIXME: Investigate how we can compile things like count, sum and collect
 			//Compile the lambda and add it to the cache
 			if (lambdaBody.startsWith("collect")){
 				pushdownCollector = //groupingBy(SimpleEntry<String, Long>::getKey, counting()); 
@@ -110,8 +106,8 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 				collectorCache.put(lambdaBody, pushdownCollector);
 		        hasTerminalLambda = true;
 			} else { 
-				lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));			
 				//Add the new compiled function to the list of functions to apply to the stream
+				lambdaCache.put(lambdaBody, getFunctionObject(lambdaBody, lambdaType));			
 				pushdownFunctions.add(lambdaCache.get(lambdaBody));
 			}
         }
@@ -257,7 +253,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		Collector function = null;
 		try {
 			return CollectorCompilationHelper.getCollectorObject(
-						getLambdaBody(lambdaSignature), lambdaType);
+						getLambdaBody(lambdaSignature), lambdaType, lambdaFactory);
 		} catch (SecurityException | IllegalArgumentException e) {
 			e.printStackTrace();
 		}		

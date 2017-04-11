@@ -1,5 +1,14 @@
 package main.java.graph;
 
+/**
+ * Each node within a graph represents an operation executed
+ * in an RDD. The node contains information about the type of the
+ * operation, as well as meta information to be filled by
+ * migration/modification rules.
+ * 
+ * @author Raul Gracia
+ *
+ */
 public class GraphNode {
 	
 	//RDD operations can be only transformations or actions
@@ -12,8 +21,7 @@ public class GraphNode {
 	private GraphNode previousNode;
 	
 	private String toPushdown;
-	private String codeReplacement = "";
-	
+	private String codeReplacement = "";	
 	
 	/*Access methods*/
 
@@ -63,7 +71,8 @@ public class GraphNode {
 
 	@Override
 	public String toString() {
-		return "GraphNode [transformation=" + transformation + ", toExecute=" + lambdaSignature + ", functionType="
+		return "GraphNode [transformation=" + transformation + 
+			", toExecute=" + lambdaSignature + ", functionType="
 				+ functionType + ", nextNode=" + nextNode + "]";
 	}
 

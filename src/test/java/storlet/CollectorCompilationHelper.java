@@ -3,13 +3,14 @@ package test.java.storlet;
 import java.util.stream.Collector;
 
 import main.java.compiler.JobCompiler;
+import main.java.pl.joegreen.lambdaFromString.LambdaFactory;
 
 public class CollectorCompilationHelper {
 	
 	private static final String COMPILED_JOB_PATH = "test.java.storlet";
 	
 	@SuppressWarnings("rawtypes")
-	public static Collector getCollectorObject(String collectorSignature, String collectorType) {
+	public static Collector getCollectorObject(String collectorSignature, String collectorType, LambdaFactory factory) {
 			 
 		 String className = "CompiledCollector";
 		 String javaCode = "package " + COMPILED_JOB_PATH + ";\n" +
@@ -29,8 +30,13 @@ public class CollectorCompilationHelper {
 		                    "}\n";
 		 
 		System.out.println(javaCode);
+		long iniTime = System.currentTimeMillis();
+		/*javaCode = collectorSignature;
+		Collector result = factory.createLambdaUnchecked(javaCode,  
+		new TypeReference<Collector<SimpleEntry<String, Long>, ?, Map<String, Long>>>(){});*/		
 		JobCompiler compiler = new JobCompiler();
 		IGetCollector getCollector = (IGetCollector) compiler.compileFromString(COMPILED_JOB_PATH, className, javaCode);
+		System.out.println("NANO TIME COMPILATION COLLECTOR: " + (System.currentTimeMillis()-iniTime));
 		return getCollector.getCollector();
 	}
 }

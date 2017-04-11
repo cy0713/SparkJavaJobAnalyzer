@@ -2,14 +2,20 @@ package main.java.analyzer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import main.java.graph.GraphNode;
 
+/**
+ * Helper class to obtain the correct type information of a lambda.
+ * This class is specially conceived as a fall-back mechanisms to infer 
+ * the type of a lambda when the real inference library fails,
+ * 
+ * @author Raul Gracia
+ *
+ */
 public class LambdaTypeParser {
 
 	private String lambdaRawType;
@@ -93,7 +99,8 @@ public class LambdaTypeParser {
 		if (undefinedGeneric(inferredArgument)){
 			System.err.println("WARNING! We cannot infer the parameter type for: " +
 					inferredArgument + " in " + node.getLambdaSignature());
-			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
+			System.err.println("We are going to fallback to typeString, but "
+					+ "this may crash at the server side!");
 			return "java.lang.String";
 		}		
 		return inferredArgument;
@@ -101,8 +108,10 @@ public class LambdaTypeParser {
 	
 	private List<String> checkArgument(List<String> nextNodeArguments, GraphNode node) {
 		if (nextNodeArguments.isEmpty()){
-			System.err.println("WARNING! We cannot find next node parameters for: " + node.getLambdaSignature());
-			System.err.println("We are going to fallback to typeString, but this may crash at the server side!");
+			System.err.println("WARNING! We cannot find next node parameters for: " + 
+						node.getLambdaSignature());
+			System.err.println("We are going to fallback to typeString, but this may "
+					+ "crash at the server side!");
 			return Arrays.asList("java.lang.String");
 		}
 		return nextNodeArguments;

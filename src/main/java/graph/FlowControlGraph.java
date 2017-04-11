@@ -2,6 +2,13 @@ package main.java.graph;
 
 import java.util.Iterator;
 
+/**
+ * This graph represents the sequence of operations executed in a single RDD.
+ * Each operation is represented as a {@link GraphNode} object.
+ * 
+ * @author Raul Gracia
+ *
+ */
 public class FlowControlGraph implements Iterable<GraphNode>{
 	
 	private String rdd = "";
