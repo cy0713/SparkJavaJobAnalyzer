@@ -19,7 +19,6 @@ public class Collect implements LambdaRule {
 						"Collectors."+method.getName());
 			}
 		}
-		System.out.println("CLEAN SIGNATURE COLLECTOR: " + cleanSignature);
 		graphNode.setToPushdown(cleanSignature);
 	}
 

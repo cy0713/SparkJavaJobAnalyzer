@@ -7,14 +7,12 @@ public class Collect implements LambdaRule {
 
 	@Override
 	public void applyRule(GraphNode graphNode) {
-		// TODO Auto-generated method stub
+		//In general, the collector should be executed both at the storage and compute sides
+		graphNode.setCodeReplacement(graphNode.getLambdaSignature());
+		//1) Exception: A groupBy + counting can be replaced by a groupBy + summingXXX
+		//as the summingXXX will aggregate the partial counting of all storlets
 		if (graphNode.getLambdaSignature().equals("collect(groupingBy(SimpleEntry<String, Long>::getKey, counting()))"))
 			graphNode.setCodeReplacement("collect(groupingBy(SimpleEntry<String, Long>::getKey, summingLong(SimpleEntry::getValue)))");
-		if (graphNode.getLambdaSignature().equals("collect(Collectors.toList())"))
-			graphNode.setCodeReplacement("collect(Collectors.toList())");
-		if (graphNode.getLambdaSignature().equals("collect(Collectors.maxBy(String::compareTo))"))
-			graphNode.setCodeReplacement("collect(Collectors.maxBy(String::compareTo))");
-		if (graphNode.getLambdaSignature().equals("collect(Collectors.minBy(String::compareTo))"))
-			graphNode.setCodeReplacement("collect(Collectors.minBy(String::compareTo))");
+		
 	}
 }

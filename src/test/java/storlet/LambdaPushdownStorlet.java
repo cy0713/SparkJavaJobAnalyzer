@@ -137,9 +137,8 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	}	
 	
 	@Override
-	public void invoke(ArrayList<StorletInputStream> inStreams,
-				ArrayList<StorletOutputStream> outStreams, Map<String, String> parameters,
-						StorletLogger logger) throws StorletException {
+	public void invoke(ArrayList<StorletInputStream> inStreams,	ArrayList<StorletOutputStream> outStreams, 
+			Map<String, String> parameters, StorletLogger logger) throws StorletException {
 			
 		long before = System.nanoTime();
 		logger.emitLog("----- Init " + this.getClass().getName() + " -----");
@@ -269,12 +268,11 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		return function;
 	}
 	
-	@SuppressWarnings({ "rawtypes" })
+	@SuppressWarnings({"rawtypes"})
 	private Collector getCollectorObject(String lambdaSignature, String lambdaType) {
 		Collector function = null;
 		try {
-			return CollectorCompilationHelper.getCollectorObject(
-										getLambdaBody(lambdaSignature), lambdaType);
+			return CollectorCompilationHelper.getCollectorObject(getLambdaBody(lambdaSignature), lambdaType);
 		} catch (SecurityException | IllegalArgumentException e) {
 			e.printStackTrace();
 		}		
