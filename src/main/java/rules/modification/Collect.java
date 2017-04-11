@@ -10,6 +10,8 @@ public class Collect implements LambdaRule {
 		// TODO Auto-generated method stub
 		if (graphNode.getLambdaSignature().equals("collect(groupingBy(SimpleEntry<String, Long>::getKey, counting()))"))
 			graphNode.setCodeReplacement("collect(groupingBy(SimpleEntry<String, Long>::getKey, summingLong(SimpleEntry::getValue)))");
+		if (graphNode.getLambdaSignature().equals("collect(Collectors.toList())"))
+			graphNode.setCodeReplacement("collect(Collectors.toList())");
 	}
 
 }

@@ -7,6 +7,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         SimpleLogAnalyzerTest.class,
         SimpleLogAnalyzer2Test.class,
-        WordCountJava8StreamsTest.class
+        SimpleLogAnalyzer3Test.class,
+        WordCountJava8StreamsTest.class,
+        SimpleListCollectorTest.class
 })
 public class SparkJavaJobAnalyzerTestSuite {}

@@ -12,7 +12,8 @@ package main.java.graph;
 public class GraphNode {
 	
 	//RDD operations can be only transformations or actions
-	private boolean transformation = true;
+	//private boolean pushable = true;
+	private boolean terminal = false;
 	
 	private String lambdaSignature;	
 	private String functionType;
@@ -24,14 +25,6 @@ public class GraphNode {
 	private String codeReplacement = "";	
 	
 	/*Access methods*/
-
-	public boolean isTransformation() {
-		return transformation;
-	}
-
-	public void setTransformation(boolean transformation) {
-		this.transformation = transformation;
-	}
 
 	public GraphNode getNextNode() {
 		return nextNode;
@@ -71,7 +64,7 @@ public class GraphNode {
 
 	@Override
 	public String toString() {
-		return "GraphNode [transformation=" + transformation + 
+		return "GraphNode [terminal=" + terminal + 
 			", toExecute=" + lambdaSignature + ", functionType="
 				+ functionType + ", nextNode=" + nextNode + "]";
 	}
@@ -91,5 +84,12 @@ public class GraphNode {
 	public void setCodeReplacement(String codeReplacement) {
 		this.codeReplacement = codeReplacement;
 	}
-	
+
+	public void setTerminal(boolean terminal) {
+		this.terminal = terminal;
+	}
+
+	public boolean isTerminal() {
+		return terminal;
+	}	
 }

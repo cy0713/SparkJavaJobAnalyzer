@@ -20,36 +20,17 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 	public FlowControlGraph(String rdd) {
 		this.rdd = rdd;
 	}
-
-	/**
-	 * Add a new node to the flow control graph.
-	 * 
-	 * @param operation
-	 * @param transformation
-	 */
-	public void appendOperationToRDD(String operation, boolean transformation){
-		GraphNode toAdd = new GraphNode();
-		toAdd.setTransformation(transformation);
-		toAdd.setLambdaSignature(operation);
-		if (root==null) {
-			toAdd.setPreviousNode(toAdd);
-			toAdd.setNextNode(toAdd);
-		}else{
-			lastNode.setNextNode(toAdd);
-			toAdd.setPreviousNode(lastNode);
-			lastNode = toAdd;
-		}
-	}
 	
 	/**
 	 * Add a new node to the flow control graph.
 	 * 
 	 * @param operation
-	 * @param transformation
+	 * @param pushable
 	 */
-	public void appendOperationToRDD(String operation, String functionType, boolean transformation){
+	public void appendOperationToRDD(String operation, String functionType, boolean terminal){
 		GraphNode toAdd = new GraphNode();
-		toAdd.setTransformation(transformation);
+		//toAdd.setPushable(pushable);
+		toAdd.setTerminal(terminal);
 		toAdd.setLambdaSignature(operation);
 		toAdd.setFunctionType(functionType);
 		if (root==null) {
@@ -72,7 +53,7 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 		GraphNode pointer = root;
 		while (!finishLoop){
 			output.append(pointer.getLambdaSignature() + " -> type of lambda: " + pointer.getFunctionType()
-					+ ". Is transformation? " + pointer.isTransformation());
+					+ ". Is terminal? " + pointer.isTerminal());
 			output.append("\n ^ \n");
 			pointer = pointer.getNextNode();
 			finishLoop = pointer == null;

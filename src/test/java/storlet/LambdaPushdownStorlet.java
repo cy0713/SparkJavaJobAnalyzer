@@ -180,18 +180,22 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	}
 	
 	/**
-	 * 
+	 * In this method we have to treat differently the supported terminal operations. There are
+	 * operations that return collections of objects, normally from collect operations (List, Map)
+	 * and other operations that return just a single number (count, sum, min, max). We have to deal
+	 * with these cases and return the result as a (non-parallel) stream (otherwise the output of the
+	 * processing will show errors related to uncontrolled writes on the output stream).
 	 * 
 	 * @param writeYourLambdas
 	 * @return
 	 */
-	private Stream applyTerminalOperation(Stream functionsOnStream, Collector terminalOperation) {
-		// TODO: In this method we have to treat differently the supported terminal operations. There are
-		// operations that return collections of objects, normally from collect operations (List, Map)
-		// and other operations that return just a single number (count, sum, min, max). We have to deal
-		// with these cases and return the result as a (non-parallel) stream (otherwise the output of the
-		// processing will show errors related to uncontrolled writes on the output stream).
-		return ((Map) functionsOnStream.collect(terminalOperation)).entrySet().stream();
+	@SuppressWarnings("rawtypes")
+	private Stream applyTerminalOperation(Stream functionsOnStream, Collector terminalOperation) {	
+		//Executing a terminal operation forces us to consume the stream, which may be bad for performance
+		Object collectorResult = functionsOnStream.collect(terminalOperation);
+		if (collectorResult instanceof Map) return ((Map) collectorResult).entrySet().stream();
+		if (collectorResult instanceof List) return ((List) collectorResult).stream();
+		return Stream.of(collectorResult);		
 	}
 
 	private void writeByteBasedStreams(InputStream is, OutputStream os, StorletLogger logger) {

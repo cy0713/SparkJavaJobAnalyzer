@@ -121,13 +121,15 @@ public class SparkJavaJobAnalyzer {
         for (String key: identifiedStreams.keySet()){
         	for (GraphNode node: identifiedStreams.get(key)){
         		if (node.getToPushdown()!=null)
-        			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), node.getFunctionType()));
-        		//if (node.isTransformation())
+        			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), 
+        								node.getFunctionType()));
+        		//Modify the original's job code according to modification rules
         		String toReplace = "";
         		if (node.getCodeReplacement()!="") toReplace =  "."+node.getCodeReplacement();
-        		modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), toReplace);
+        			modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), toReplace);
         	}
         }  
+        System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
@@ -153,7 +155,8 @@ public class SparkJavaJobAnalyzer {
 	private void findTypesOfLambdasInGraph(FlowControlGraph flowControlGraph) {	
 		//Here we try to fill the missing types of lambdas in the graph
 		for (GraphNode node: flowControlGraph){
-			if (!node.isTransformation()) continue;
+			//Not necessary to find types for terminal operations
+			if (node.isTerminal()) continue;
 			LambdaTypeParser lambdaTypeParser = new LambdaTypeParser(node.getFunctionType());
 			//If the type is correctly set, go ahead
 			if (lambdaTypeParser.isTypeWellDefined()) continue;
@@ -245,7 +248,7 @@ public class SparkJavaJobAnalyzer {
 		        try {
 		        	matcher.find();
 			        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-			        identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
+			        identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
 			        lastLambdaIndex = matcher.end();
 		        }catch(IllegalStateException e) {
 		        	System.err.println("Error parsing the lambda. Probably you need to add how to "
@@ -256,15 +259,24 @@ public class SparkJavaJobAnalyzer {
 			
 			Pattern pattern = Pattern.compile("\\." + pushableTerminalLambdas);
 			Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
-			//Add the terminal lambdas, if they exist
-			//TODO: At the moment we assume a single final terminal operation in the expression
-			if (lastLambdaIndex<expressionString.length() && matcher.find()){
-				String matchedAction = expressionString.substring(lastLambdaIndex+matcher.start()+1, 
-																  expressionString.length());
-				//We do not need to know the collector type parameterization
-				String lambdaType = "Collector";
-				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, lambdaType, false);
+			//There is only a single terminal operation in the expression
+			if (matcher.find()){
+				int pos = lastLambdaIndex+matcher.end()+1;
+				int openBr = 1;
+				while (openBr!=0) {
+					if (expressionString.charAt(pos)=='(') openBr++;
+					if (expressionString.charAt(pos)==')') openBr--;
+					pos++;
+				}
+				String matchedAction = expressionString.substring(lastLambdaIndex+1, pos);
+				lastLambdaIndex = pos;
+				//At the moment, we do not need to know the collector type parameterization
+				identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, "Collector", true);
 			}			
+			//Add other methods after the terminal operation, as they operate on the resulting object
+			/*if (lastLambdaIndex<expressionString.length())
+				identifiedStreams.get(streamKeyString).appendOperationToRDD(
+						expressionString.substring(lastLambdaIndex), null, false, false);*/
     	}
 
 		private String getLambdaTypeFromNode(Node n) {

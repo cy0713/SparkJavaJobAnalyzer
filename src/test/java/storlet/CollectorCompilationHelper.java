@@ -10,9 +10,10 @@ public class CollectorCompilationHelper {
 	private static final String COMPILED_JOB_PATH = "test.java.storlet";
 	
 	@SuppressWarnings("rawtypes")
-	public static Collector getCollectorObject(String collectorSignature, String collectorType, LambdaFactory factory) {
+	public static Collector getCollectorObject(String collectorSignature, 
+			String collectorType, LambdaFactory factory) {
 			 
-		 String className = "CompiledCollector";
+		 String className = "Collector"+String.valueOf(Math.abs(collectorSignature.hashCode()));
 		 String javaCode = "package " + COMPILED_JOB_PATH + ";\n" +
 				 			"import java.util.stream.Collectors; \n" +
 				 			"import java.util.stream.Collector; \n" +
@@ -23,7 +24,7 @@ public class CollectorCompilationHelper {
 				 			"import static java.util.stream.Collectors.groupingBy; \n"+
 				 			"import static java.util.stream.Collectors.counting; \n"+
 				 			
-		                    "public class CompiledCollector implements IGetCollector {\n" +
+		                    "public class " + className + " implements IGetCollector {\n" +
 		                    "    public " + collectorType +" getCollector() {\n" +
 		                    "        return (" + collectorType + ")" + collectorSignature + ";\n" +
 		                    "    }\n" +
