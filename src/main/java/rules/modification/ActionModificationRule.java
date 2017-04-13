@@ -18,7 +18,7 @@ public class ActionModificationRule implements LambdaRule{
 		} else graphNode.setCodeReplacement(graphNode.getLambdaSignature());
 	}
 
-	//TODO: This should be more generic!
+	//TODO: This should be more generic! Some efforts needed to make this work a range of types
 	protected String instantiationSignature(String lastParameter) {
 		if (!lastParameter.contains(",") && !lastParameter.contains("<"))
 			return "new " + lastParameter + "(s)";

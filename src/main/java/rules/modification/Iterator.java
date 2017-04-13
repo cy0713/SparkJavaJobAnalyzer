@@ -1,6 +1,3 @@
 package main.java.rules.modification;
 
-public class Iterator extends ActionModificationRule {
-	
-
-}
+public class Iterator extends ActionModificationRule {}
