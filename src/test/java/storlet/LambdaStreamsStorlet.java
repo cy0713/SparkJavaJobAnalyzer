@@ -89,7 +89,6 @@ public abstract class LambdaStreamsStorlet implements IStorlet {
 			BufferedReader readBuffer = new BufferedReader(new InputStreamReader(is, CHARSET), BUFFER_SIZE); 
 			writeYourLambdas(readBuffer.lines()).forEach(line -> {	
 				try {
-					//FIXME: We have to call toString here to write a String from unknown Stream items
 					writeBuffer.write(line.toString());  
 					writeBuffer.newLine();
 				}catch(IOException e){

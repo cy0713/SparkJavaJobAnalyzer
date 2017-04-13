@@ -8,8 +8,8 @@ import test.java.cases.SimpleLogAnalyzer2Test;
 import test.java.cases.SimpleLogAnalyzer3Test;
 import test.java.cases.SimpleLogAnalyzerTest;
 import test.java.cases.SimpleMaxCollectorTest;
+import test.java.cases.StreamVariableAssignmentTest;
 import test.java.cases.WordCountJava8StreamsTest;
-import test.resources.java8streams_jobs.SimpleMaxCollector;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -18,6 +18,7 @@ import test.resources.java8streams_jobs.SimpleMaxCollector;
         SimpleLogAnalyzer3Test.class,
         WordCountJava8StreamsTest.class,
         SimpleListCollectorTest.class,
-        SimpleMaxCollectorTest.class
+        SimpleMaxCollectorTest.class,
+        StreamVariableAssignmentTest.class
 })
 public class SparkJavaJobAnalyzerTestSuite {}

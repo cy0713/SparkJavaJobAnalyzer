@@ -7,7 +7,7 @@ public class Distinct implements LambdaRule {
 
 	@Override
 	public void applyRule(GraphNode graphNode) {
-		// TODO Auto-generated method stub
+		graphNode.setToPushdown(graphNode.getLambdaSignature());
 	}
 
 }

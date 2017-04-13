@@ -5,10 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +34,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
+import main.java.graph.algorithms.SafeLambdaMigrationFinder;
 import main.java.rules.LambdaRule;
 
 /**
@@ -58,7 +61,7 @@ public class SparkJavaJobAnalyzer {
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
 	private final String pushableIntermediateLambdas = "(map|filter|flatMap|collect|mapToPair|reduceByKey)";
-	private final String pushableTerminalLambdas = "(collect|count)";
+	private final String pushableTerminalLambdas = "(collect|count|iterator)";
 	//private final String RDDActions = "(count|cache)";
 	
 	private final static String migrationRulesPackage = "main.java.rules.migration.";
@@ -102,7 +105,9 @@ public class SparkJavaJobAnalyzer {
         	findTypesOfLambdasInGraph(identifiedStreams.get(key));
         
         //TODO: Big Challenge: if there are assignments of an RDD variable to another RDD variable, 
-        //find the minimum set of lambdas that can be successfully executed at the storage side        
+        //find the minimum set of lambdas that can be successfully executed at the storage side     
+        identifiedStreams = new SafeLambdaMigrationFinder().computeMigrationGraph(identifiedStreams);
+        
         //Here, we need the intelligence to know what to pushdown   
         for (String key: identifiedStreams.keySet()){
         	applyRulesToControlFlowGraph(identifiedStreams.get(key), migrationRulesPackage);
@@ -112,14 +117,12 @@ public class SparkJavaJobAnalyzer {
         for (String key: identifiedStreams.keySet()){
         	applyRulesToControlFlowGraph(identifiedStreams.get(key), modificationRulesPackage);
         } 
-        
-        //TODO: Big Challenge: Making the previous two steps (migration/modification rules)
-        //to properly work individually will be challenging, as the logic of both is somewhat entangled
 
         //Get all the lambdas from the graph that have been selected for pushdown
         List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
         for (String key: identifiedStreams.keySet()){
         	for (GraphNode node: identifiedStreams.get(key)){
+        		System.out.println("AQUI TIENE QUE ESTAAR: " + node.toString());
         		if (node.getToPushdown()!=null)
         			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), 
         								node.getFunctionType()));
@@ -138,6 +141,7 @@ public class SparkJavaJobAnalyzer {
 	private void applyRulesToControlFlowGraph(FlowControlGraph flowControlGraph, String rulesPackage) {
         LambdaRule pushdownLambdaRule = null;
         for (GraphNode node: flowControlGraph){  
+        	System.out.println(rulesPackage + ": " + node.toString());
         	String functionName = node.getFunctionName();
 			try {
 				//Instantiate the class that contains the rules to pushdown a given lambda
@@ -177,10 +181,22 @@ public class SparkJavaJobAnalyzer {
 		
 		@Override
 	    public Node visit(VariableDeclarator declarator, Void args) {	
+			//TODO: Limitation here, we need a variable declared to find it, so this
+			//does not work with an anonymous declaration like createStream().stream().lambdas...
 			Matcher matcher = datasetsPattern.matcher(declarator.getType().toString());
+			//Check if we found and in memory data structure like an RDD
 	     	if (matcher.find()){
 	     		String streamVariable = declarator.getChildNodes().get(0).toString();
-	     		identifiedStreams.put(streamVariable, new FlowControlGraph(streamVariable));
+	     		FlowControlGraph graph = new FlowControlGraph(streamVariable);
+	     		identifiedStreams.put(streamVariable, graph);
+	     		String name = declarator.getChildNodes().get(1).toString().trim();
+	     		//Maybe there is an even simpler way of doing this
+	     		Optional<String> referencedRDD = Arrays.stream(name.split("\\."))
+	     											.filter(s -> identifiedStreams.containsKey(s))
+	     											.findFirst();
+	     		//Here we note that this RDD comes from another one
+	     		if (referencedRDD.isPresent())
+	     			graph.setOiriginRDD(referencedRDD.get());
 	     	}	 
 			return declarator;
 		 }
@@ -196,8 +212,6 @@ public class SparkJavaJobAnalyzer {
 		@Override
         public void visit(MethodCallExpr methodExpression, Object arg) {				
 			System.out.println("methodExpression: " + methodExpression);	        
-			//TODO: Limitation here, we need a variable declared to find it, so this
-			//does not work with an anonymous declaration like createStream().stream().lambdas...
 			//Check if the current expression is related to any stream of interest
 			boolean isExpressionOnStream = false;
 			String streamKeyString = "";
@@ -209,7 +223,15 @@ public class SparkJavaJobAnalyzer {
 				}
 			}
 			//If this line is not interesting to us, just skip
-			if (!isExpressionOnStream) return;			
+			if (!isExpressionOnStream) return;		
+
+			//If the current RDD comes from another one, link it to the graph of the original
+			//This is necessary to compute afterwards what computations to migrate without impacting the results
+			FlowControlGraph flowGraph = identifiedStreams.get(streamKeyString);
+			if (flowGraph.getOiriginRDD()!=null && !flowGraph.isLinked()){
+				identifiedStreams.get(flowGraph.getOiriginRDD()).getLastNode().getAssignedRDDs().add(flowGraph);
+				flowGraph.setLinked(true);
+			}
 			
 			//Leave only the expression that is interesting to us, on the stream variable. We need this
 			//as the expression can be within a System.out.print() method, for example

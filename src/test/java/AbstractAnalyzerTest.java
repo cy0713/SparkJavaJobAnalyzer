@@ -62,7 +62,9 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		 */
         testUtils.executePushdownStorlet(lambdaMap, inputStorletFile, outputStorletFilePushdown);
         //Make sure that the result of the storlet with lambdas is different to the input
-      	assertFalse(testUtils.compareFiles(inputStorletFile, outputStorletFilePushdown));
+        if (lambdaMap.isEmpty()) 
+        	assertTrue(testUtils.compareFiles(inputStorletFile, outputStorletFilePushdown));
+        else assertFalse(testUtils.compareFiles(inputStorletFile, outputStorletFilePushdown));
 
 		analyticsJob = (TestTask) new JobCompiler().compileFromString(analyticsJob.getClass()
 												   .getSimpleName(), modifiedJobCode);

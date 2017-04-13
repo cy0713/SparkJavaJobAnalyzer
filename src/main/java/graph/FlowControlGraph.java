@@ -13,10 +13,13 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 	
 	private String rdd = "";
 	
+	private String oiriginRDD;
+	private boolean linked;
+	
 	private GraphNode root;
 	
 	private GraphNode lastNode;
-	
+
 	public FlowControlGraph(String rdd) {
 		this.rdd = rdd;
 	}
@@ -78,6 +81,30 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 
 	public void setRoot(GraphNode root) {
 		this.root = root;
+	}
+
+	public String getOiriginRDD() {
+		return oiriginRDD;
+	}
+
+	public void setOiriginRDD(String oiriginRDD) {
+		this.oiriginRDD = oiriginRDD;
+	}
+
+	public boolean isLinked() {
+		return linked;
+	}
+
+	public void setLinked(boolean linked) {
+		this.linked = linked;
+	}
+	
+	public GraphNode getLastNode() {
+		return lastNode;
+	}
+
+	public void setLastNode(GraphNode lastNode) {
+		this.lastNode = lastNode;
 	}
 }
 
