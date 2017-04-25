@@ -3,6 +3,8 @@ package main.java.graph;
 import java.util.ArrayList;
 import java.util.List;
 
+import main.java.utils.Utils;
+
 /**
  * Each node within a graph represents an operation executed
  * in an RDD. The node contains information about the type of the
@@ -35,20 +37,7 @@ public class GraphNode {
 											 .replace("java.util.function.Function<", "");
 		cleanParameters = cleanParameters.substring(0, cleanParameters.lastIndexOf(">"));
 		System.out.println("CLEAN PARAMETERS: " + cleanParameters);
-		List<String> result = new ArrayList<>();
-		int openBr = 0;
-		int inipos = 0, pos = 0;
-		while (pos<cleanParameters.length()) {
-			if (cleanParameters.charAt(pos)=='<') openBr++;
-			if (cleanParameters.charAt(pos)=='>') openBr--;
-			if ((cleanParameters.charAt(pos)==',' && openBr==0) || (pos == cleanParameters.length()-1)){
-				if (pos == cleanParameters.length()-1) pos++;
-				result.add(cleanParameters.substring(inipos, pos));
-				inipos = pos+1; //avoid the comma
-			}
-			pos++;
-		}
-		return result;								 
+		return Utils.getParametersFromSignature(cleanParameters);							 
 	}
 		
 	/*Access methods*/

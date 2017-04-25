@@ -4,6 +4,7 @@ import java.util.List;
 
 import main.java.graph.GraphNode;
 import main.java.rules.LambdaRule;
+import main.java.utils.Utils;
 
 public class ActionModificationRule implements LambdaRule{
 	
@@ -18,14 +19,26 @@ public class ActionModificationRule implements LambdaRule{
 		} else graphNode.setCodeReplacement(graphNode.getLambdaSignature());
 	}
 
-	//TODO: This should be more generic! Some efforts needed to make this work a range of types
+	//TODO: At the moment we can work with simple types, Lists and SimpleEntry
 	protected String instantiationSignature(String lastParameter) {
+		//This serves for simple times, like Integer or Long
 		if (!lastParameter.contains(",") && !lastParameter.contains("<"))
 			return "new " + lastParameter + "(s)";
-		if (lastParameter.equals("java.util.AbstractMap.SimpleEntry<java.lang.String, java.lang.Long>"))
-			return "new java.util.AbstractMap.SimpleEntry<java.lang.String, java.lang.Long>"
-					+ "(s.split(\"=\")[0], Long.valueOf(s.split(\"=\")[1]))";
-		System.err.println("PROBLEM DOING CONVERSION TYPE MAP!!!");
+		//At the moment, only consider simple type parameters like Integer, String or Long
+		if (lastParameter.startsWith("java.util.AbstractMap.SimpleEntry")){
+			List<String> params = Utils.getParametersFromSignature(
+					lastParameter.replace("java.util.AbstractMap.SimpleEntry<", "").replace(">", ""));
+			String result = "new java.util.AbstractMap.SimpleEntry<" + params.get(0) +"," + params.get(1)+ ">(";
+			int index = 0;
+			for (String p: params){
+				if (p.equals("java.lang.String")) result += "s.split(\"=\")[" + index +"],";
+				else result += p + ".valueOf(s.split(\"=\")[" + index +"]), ";
+				index++;
+			}
+			System.err.println(result);
+			return result.substring(0, result.length()-2) + ")";
+		}
+		System.err.println("PROBLEM DOING CONVERSION IN: " + this.getClass().getName());
 		return "";
 	}
 }
