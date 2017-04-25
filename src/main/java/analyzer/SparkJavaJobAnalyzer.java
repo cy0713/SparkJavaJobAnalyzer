@@ -104,8 +104,8 @@ public class SparkJavaJobAnalyzer {
         for (String key: identifiedStreams.keySet())
         	findTypesOfLambdasInGraph(identifiedStreams.get(key));
         
-        //TODO: Big Challenge: if there are assignments of an RDD variable to another RDD variable, 
-        //find the minimum set of lambdas that can be successfully executed at the storage side     
+        //If there are assignments of an RDD variable to another RDD variable, find the minimum set of 
+        //lambdas that can be successfully executed at the storage side     
         identifiedStreams = new SafeLambdaMigrationFinder().computeMigrationGraph(identifiedStreams);
         
         //Here, we need the intelligence to know what to pushdown   

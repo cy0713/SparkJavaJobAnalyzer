@@ -24,6 +24,7 @@ public class SafeLambdaMigrationFinder {
 	 * @return
 	 */
 	public HashMap<String, FlowControlGraph> computeMigrationGraph(HashMap<String, FlowControlGraph> identifiedStreams) {
+		//TODO: This algorithm may be a little more complex to be more optimized, perhaps
 		HashMap<String, FlowControlGraph> resultStreamGraphs = new HashMap<>();
 		for (String key: identifiedStreams.keySet()){
 			FlowControlGraph graph = identifiedStreams.get(key);
@@ -33,10 +34,11 @@ public class SafeLambdaMigrationFinder {
 			GraphNode lastSecureNode = null;
 			while (nodeIterator.hasNext()){
 				lastSecureNode = nodeIterator.next();
-				//Basically, if there are RDDs that are assigned from this point in the
-				//graph, just avoid migrating lambdas to the storage
-				if (!lastSecureNode.getAssignedRDDs().isEmpty()){
+				//Basically, if there are RDDs that are assigned from this point in the graph or there is a terminal
+				//operation, just avoid migrating lambdas to the storage
+				if (!lastSecureNode.getAssignedRDDs().isEmpty() || lastSecureNode.isTerminal()){
 					lastSecureNode.setNextNode(null);
+					System.out.println("LAST SECURE NODE IN GRAPH TO MIGRATE: " + lastSecureNode.toString());
 					break;
 				}
 			}

@@ -10,6 +10,7 @@ public class Collect extends ActionModificationRule {
 		super.applyRule(graphNode);
 		//1) Exception: A groupBy + counting can be replaced by a groupBy + summingXXX
 		//as the summingXXX will aggregate the partial counting of all storlets
+		//TODO: Do this more generic!!
 		if (graphNode.getLambdaSignature().equals("collect(groupingBy(SimpleEntry<String, Long>::getKey, counting()))")){
 			String codeReplacement = graphNode.getCodeReplacement().replace(graphNode.getLambdaSignature(), "");
 			graphNode.setCodeReplacement(codeReplacement +
