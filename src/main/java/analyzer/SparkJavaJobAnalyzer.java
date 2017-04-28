@@ -3,6 +3,7 @@ package main.java.analyzer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +30,7 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
 import com.github.javaparser.symbolsolver.model.typesystem.Type;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 
@@ -36,6 +38,7 @@ import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
 import main.java.graph.algorithms.SafeLambdaMigrationFinder;
 import main.java.rules.LambdaRule;
+import main.java.utils.Utils;
 
 /**
  * We consider Spark jobs in Java as input for this class. Given that, 
@@ -57,18 +60,18 @@ public class SparkJavaJobAnalyzer {
 	
 	private HashMap<String, FlowControlGraph> identifiedStreams = new HashMap<String, FlowControlGraph>();
 	
-	private final String targetedDatasets = "(Stream|RDD|JavaRDD|JavaPairRDD)"
+	private final String targetedDatasets = "(Stream|JavaRDD)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	private final String pushableIntermediateLambdas = "(map|filter|flatMap|collect|mapToPair|reduceByKey)";
-	private final String pushableTerminalLambdas = "(collect|count|iterator)";
+	private final String pushableIntermediateLambdas = "(map|filter|flatMap)";
+	private final String pushableTerminalLambdas = "(collect|count|iterator|reduce)";
 	//private final String RDDActions = "(count|cache)";
 	
 	private final static String migrationRulesPackage = "main.java.rules.migration.";
 	private final static String modificationRulesPackage = "main.java.rules.modification.";
 	private final static String srcToAnalyze = "src/"; ///resources/java8streams_jobs/";
-
-	private static final String LAMBDA_TYPE_AND_BODY_SEPARATOR = "|";
+	private final static String sparkJarLocation = "lib/spark-core_2.10-2.1.0.jar";
+	private final static String scalaJarLocation = "lib/scala-library-2.12.2.jar";
 	
 	private JavaParserFacade javaParserFacade;
 	
@@ -91,6 +94,12 @@ public class SparkJavaJobAnalyzer {
         //Build the object to infer types of lambdas from source code
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
+        try {
+			combinedTypeSolver.add(new JarTypeSolver(sparkJarLocation));
+			combinedTypeSolver.add(new JarTypeSolver(scalaJarLocation));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcToAnalyze)));
         javaParserFacade = JavaParserFacade.get(combinedTypeSolver);
         
@@ -122,7 +131,6 @@ public class SparkJavaJobAnalyzer {
         List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
         for (String key: identifiedStreams.keySet()){
         	for (GraphNode node: identifiedStreams.get(key)){
-        		System.out.println("AQUI TIENE QUE ESTAAR: " + node.toString());
         		if (node.getToPushdown()!=null)
         			lambdasToMigrate.add(new SimpleEntry<String, String>(node.getToPushdown(), 
         								node.getFunctionType()));
@@ -135,7 +143,7 @@ public class SparkJavaJobAnalyzer {
         System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
-        return encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
+        return Utils.encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
 	}
 
 	private void applyRulesToControlFlowGraph(FlowControlGraph flowControlGraph, String rulesPackage) {
@@ -309,6 +317,7 @@ public class SparkJavaJobAnalyzer {
 				return typeString;
 			}catch(RuntimeException e){
 				System.err.println("Unable to find type for lambda: " + n);
+				e.printStackTrace();
 			}	
 			return null;
 		}     	
@@ -327,34 +336,5 @@ public class SparkJavaJobAnalyzer {
 			List<Node> lambdas = (List<Node>) arg;
 			lambdas.add(n);	
 		}
-	}
-	
-	/**
-	 * This method is intended to return to an external program a JSON String response with
-	 * both the lambdas to send to the storage and the final version of the job to execute
-	 * at the Spark cluster.
-	 * 
-	 * @param lambdasToMigrate
-	 * @param cu
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	private String encodeResponse(String originalJob, String modifiedJob, 
-									List<SimpleEntry<String, String>> lambdasToMigrate) {
-		JSONObject obj = new JSONObject();
-		JSONArray jsonArray = new JSONArray();
-		
-		for (SimpleEntry<String, String> lambda: lambdasToMigrate){
-			System.out.println(lambda);
-			JSONObject lambdaObj = new JSONObject();
-			lambdaObj.put("lambda-type-and-body", lambda.getValue() + 
-					LAMBDA_TYPE_AND_BODY_SEPARATOR + lambda.getKey());
-			jsonArray.add(lambdaObj); 
-		}
-		//Separator between lambdas and the job source code
-		obj.put("original-job-code", originalJob);	
-		obj.put("pushdown-job-code", modifiedJob);	
-		obj.put("lambdas", jsonArray);
-		return obj.toString();
 	}
 }
