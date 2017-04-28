@@ -11,6 +11,7 @@ import org.json.simple.parser.ParseException;
 import junit.framework.TestCase;
 import main.java.analyzer.SparkJavaJobAnalyzer;
 import main.java.compiler.JobCompiler;
+import test.java.cases.TestTask;
 
 public abstract class AbstractAnalyzerTest extends TestCase{
 	

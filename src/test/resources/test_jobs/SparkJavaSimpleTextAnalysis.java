@@ -1,4 +1,4 @@
-package test.resources.sparkjava_jobs;
+package test.resources.test_jobs;
 
 import java.util.stream.Stream;
 
@@ -6,7 +6,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
-public class SimpleTextAnalysisSparkJava {
+public class SparkJavaSimpleTextAnalysis {
 	
 	public static void main(String[] args) {
 		

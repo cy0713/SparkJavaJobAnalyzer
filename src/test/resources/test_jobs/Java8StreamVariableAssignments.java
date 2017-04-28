@@ -1,13 +1,13 @@
-package test.resources.java8streams_jobs;
+package test.resources.test_jobs;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-import test.java.TestTask;
+import test.java.cases.TestTask;
 
-public class StreamVariableAssignments implements TestTask{
+public class Java8StreamVariableAssignments implements TestTask{
 
 	@Override
 	public StringBuilder doTask(String inputFile) {

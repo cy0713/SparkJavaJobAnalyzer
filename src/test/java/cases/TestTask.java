@@ -1,4 +1,4 @@
-package test.java;
+package test.java.cases;
 
 public interface TestTask {
 	

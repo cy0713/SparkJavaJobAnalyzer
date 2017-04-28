@@ -1,7 +1,7 @@
 package test.java.cases;
 
 import test.java.AbstractAnalyzerTest;
-import test.resources.java8streams_jobs.WordCountJava8Streams;
+import test.resources.test_jobs.Java8WordCount;
 
 public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{	
 	
@@ -9,7 +9,7 @@ public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{
 	protected void setUp() throws Exception {
 		super.setUp();
 		this.inputStorletFile = "test_data/hamlet.txt";
-		this.analyticsJob = new WordCountJava8Streams();
-		this.jobToAnalyze = "/java8streams_jobs/WordCountJava8Streams.java";
+		this.analyticsJob = new Java8WordCount();
+		this.jobToAnalyze = "/test_jobs/Java8WordCount.java";
 	}	
 }

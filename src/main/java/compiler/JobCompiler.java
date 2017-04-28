@@ -12,7 +12,8 @@ import net.openhft.compiler.CompilerUtils;
  */
 public class JobCompiler {
 	
-	private static final String COMPILED_JOB_PATH = "test.resources.java8streams_jobs";
+	//FIXME: Will this work when this runs as a JAR?
+	private static final String COMPILED_JOB_PATH = "test.resources.test_jobs";
 	
 	private static CachedCompiler compiler = CompilerUtils.CACHED_COMPILER;
 	

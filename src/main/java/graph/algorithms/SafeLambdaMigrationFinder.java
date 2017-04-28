@@ -38,7 +38,6 @@ public class SafeLambdaMigrationFinder {
 				//operation, just avoid migrating lambdas to the storage
 				if (!lastSecureNode.getAssignedRDDs().isEmpty() || lastSecureNode.isTerminal()){
 					lastSecureNode.setNextNode(null);
-					System.out.println("LAST SECURE NODE IN GRAPH TO MIGRATE: " + lastSecureNode.toString());
 					break;
 				}
 			}

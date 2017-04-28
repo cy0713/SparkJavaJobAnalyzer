@@ -69,9 +69,12 @@ public class SparkJavaJobAnalyzer {
 	
 	private final static String migrationRulesPackage = "main.java.rules.migration.";
 	private final static String modificationRulesPackage = "main.java.rules.modification.";
-	private final static String srcToAnalyze = "src/"; ///resources/java8streams_jobs/";
-	private final static String sparkJarLocation = "lib/spark-core_2.10-2.1.0.jar";
-	private final static String scalaJarLocation = "lib/scala-library-2.12.2.jar";
+	
+	//Disable this flag when building a jar
+	private final static boolean DEBUG = false;
+	private final static String defaultSrcToAnalyze = "src/"; //For testing purposes
+	//private final static String sparkJarLocation = "lib/spark-core_2.10-2.1.0.jar";
+	//private final static String scalaJarLocation = "lib/scala-library-2.12.2.jar";
 	
 	private JavaParserFacade javaParserFacade;
 	
@@ -94,13 +97,10 @@ public class SparkJavaJobAnalyzer {
         //Build the object to infer types of lambdas from source code
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
-        try {
-			combinedTypeSolver.add(new JarTypeSolver(sparkJarLocation));
-			combinedTypeSolver.add(new JarTypeSolver(scalaJarLocation));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-        combinedTypeSolver.add(new JavaParserTypeSolver(new File(srcToAnalyze)));
+        //TODO: Here we assume that any necessary type to be resolved for the file is within the parent dir
+        String sourceCodeDirToAnalyze = new File(fileToAnalyze).getParentFile().getAbsolutePath();
+        if (DEBUG) sourceCodeDirToAnalyze = defaultSrcToAnalyze;
+        combinedTypeSolver.add(new JavaParserTypeSolver(new File(sourceCodeDirToAnalyze)));
         javaParserFacade = JavaParserFacade.get(combinedTypeSolver);
         
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
@@ -140,7 +140,7 @@ public class SparkJavaJobAnalyzer {
         			modifiedJobCode = modifiedJobCode.replace("."+node.getLambdaSignature(), toReplace);
         	}
         }  
-        System.out.println(modifiedJobCode);
+        if (DEBUG) System.out.println(modifiedJobCode);
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return Utils.encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
@@ -219,7 +219,7 @@ public class SparkJavaJobAnalyzer {
 	private class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		@Override
         public void visit(MethodCallExpr methodExpression, Object arg) {				
-			System.out.println("methodExpression: " + methodExpression);	        
+			if (DEBUG) System.out.println("methodExpression: " + methodExpression);	        
 			//Check if the current expression is related to any stream of interest
 			boolean isExpressionOnStream = false;
 			String streamKeyString = "";
@@ -267,7 +267,7 @@ public class SparkJavaJobAnalyzer {
 			//Get the entire intermediate lambda functions that can be pushed down
 			int lastLambdaIndex = 0;
 			for (Node n: lambdas){    		
-				System.out.println("->>>" + n);
+				if (DEBUG) System.out.println("Processing lambda: " + n);
 				//Take advantage of this pass to try to infer the types of the lambdas
 				//Anyway, this will require a further process later on
 				String lambdaType = getLambdaTypeFromNode(n);							
@@ -306,20 +306,20 @@ public class SparkJavaJobAnalyzer {
     	}
 
 		private String getLambdaTypeFromNode(Node n) {
-			try {
+			//try {
 				Type type = javaParserFacade.getType(n, true);
 				//Clean the raw input information coming from JSS
 				String typeString = type.describe().replace(" ? extends ? super ", "")	
 												   .replace("? super ", "")
 												   .replace("? extends ", "")
 												   .replace(" int", " java.lang.Integer");
-				System.out.println("Type found by JSS: " + typeString);
+				if (DEBUG) System.out.println("Type found by JSS: " + typeString);
 				return typeString;
-			}catch(RuntimeException e){
+			/*}catch(RuntimeException e){
 				System.err.println("Unable to find type for lambda: " + n);
 				e.printStackTrace();
-			}	
-			return null;
+			}	*/
+			//return null;
 		}     	
     }
 	

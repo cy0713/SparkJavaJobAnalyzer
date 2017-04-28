@@ -1,4 +1,4 @@
-package test.resources.java8streams_jobs;
+package test.resources.test_jobs;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,14 +9,14 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import test.java.cases.TestTask;
+
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 //TODO: THis import shouldnt be here, it should be added to the modified job code
 import static java.util.stream.Collectors.summingLong;
 
-import test.java.TestTask;
-
-public class WordCountJava8Streams implements TestTask{
+public class Java8WordCount implements TestTask{
 	
 	public StringBuilder doTask(String inputFile) {
 		StringBuilder builder = new StringBuilder();

@@ -1,7 +1,7 @@
 package test.java.cases;
 
 import test.java.AbstractAnalyzerTest;
-import test.resources.java8streams_jobs.SimpleListCollector;
+import test.resources.test_jobs.Java8SimpleListCollector;
 
 public class SimpleListCollectorTest extends AbstractAnalyzerTest{	
 	
@@ -9,7 +9,7 @@ public class SimpleListCollectorTest extends AbstractAnalyzerTest{
 	protected void setUp() throws Exception {
 		super.setUp();
 		this.inputStorletFile = "test_data/hamlet.txt";
-		this.analyticsJob = new SimpleListCollector();
-		this.jobToAnalyze = "/java8streams_jobs/SimpleListCollector.java";
+		this.analyticsJob = new Java8SimpleListCollector();
+		this.jobToAnalyze = "/test_jobs/Java8SimpleListCollector.java";
 	}	
 }

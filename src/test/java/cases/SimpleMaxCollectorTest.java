@@ -1,7 +1,7 @@
 package test.java.cases;
 
 import test.java.AbstractAnalyzerTest;
-import test.resources.java8streams_jobs.SimpleMaxCollector;
+import test.resources.test_jobs.Java8SimpleMaxCollector;
 
 public class SimpleMaxCollectorTest extends AbstractAnalyzerTest{	
 	
@@ -9,7 +9,7 @@ public class SimpleMaxCollectorTest extends AbstractAnalyzerTest{
 	protected void setUp() throws Exception {
 		super.setUp();
 		this.inputStorletFile = "test_data/hamlet.txt";
-		this.analyticsJob = new SimpleMaxCollector();
-		this.jobToAnalyze = "/java8streams_jobs/SimpleMaxCollector.java";
+		this.analyticsJob = new Java8SimpleMaxCollector();
+		this.jobToAnalyze = "/test_jobs/Java8SimpleMaxCollector.java";
 	}	
 }

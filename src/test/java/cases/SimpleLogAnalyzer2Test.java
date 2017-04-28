@@ -1,7 +1,7 @@
 package test.java.cases;
 
 import test.java.AbstractAnalyzerTest;
-import test.resources.java8streams_jobs.SimpleLogAnalyzer2;
+import test.resources.test_jobs.Java8SimpleLogAnalyzer2;
 
 public class SimpleLogAnalyzer2Test extends AbstractAnalyzerTest{	
 	
@@ -9,7 +9,7 @@ public class SimpleLogAnalyzer2Test extends AbstractAnalyzerTest{
 	protected void setUp() throws Exception {
 		super.setUp();
 		this.inputStorletFile = "test_data/hamlet.txt";
-		this.analyticsJob = new SimpleLogAnalyzer2();
-		this.jobToAnalyze = "/java8streams_jobs/SimpleLogAnalyzer2.java";
+		this.analyticsJob = new Java8SimpleLogAnalyzer2();
+		this.jobToAnalyze = "/test_jobs/Java8SimpleLogAnalyzer2.java";
 	}	
 }

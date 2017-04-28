@@ -1,6 +1,6 @@
-package test.resources.sparkjava_jobs;
+package test.resources.test_jobs;
 
-public class SparkWordCount {
+public class SparkJavaWordCount {
 	
 	public static void main(String[] args) {
 		
