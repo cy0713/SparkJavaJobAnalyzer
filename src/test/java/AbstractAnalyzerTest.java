@@ -54,7 +54,7 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		 */     
         SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
         // visit and print the methods names
-        String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze);
+        String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze).toString();
         //Load the results of the job analyzer (lambda map and modified code)
         loadAnalyzerResults(pushdownAnalysisResult);
         

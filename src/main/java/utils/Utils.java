@@ -42,7 +42,7 @@ public class Utils {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static String encodeResponse(String originalJob, String modifiedJob, 
+	public static JSONObject encodeResponse(String originalJob, String modifiedJob, 
 									List<SimpleEntry<String, String>> lambdasToMigrate) {
 		JSONObject obj = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
@@ -62,7 +62,7 @@ public class Utils {
 		obj.put("original-job-code", originalJob);	
 		obj.put("pushdown-job-code", modifiedJob);	
 		obj.put("lambdas", jsonArray);
-		return obj.toString();
+		return obj;
 	}
 
 }

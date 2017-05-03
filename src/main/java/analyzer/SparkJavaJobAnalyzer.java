@@ -70,7 +70,7 @@ public class SparkJavaJobAnalyzer {
 	private final static String migrationRulesPackage = "main.java.rules.migration.";
 	private final static String modificationRulesPackage = "main.java.rules.modification.";
 	
-	//Disable this flag when building a jar
+	//IMPORTANT: For tests to work, this must be true. For a jar release, this must be false.
 	private final static boolean DEBUG = false;
 	private final static String defaultSrcToAnalyze = "src/"; //For testing purposes
 	//private final static String sparkJarLocation = "lib/spark-core_2.10-2.1.0.jar";
@@ -78,7 +78,7 @@ public class SparkJavaJobAnalyzer {
 	
 	private JavaParserFacade javaParserFacade;
 	
-	public String analyze (String fileToAnalyze) {
+	public JSONObject analyze (String fileToAnalyze) {
 		//Get the input stream from the job file to analyze
 		FileInputStream in = null;		
 		try {
@@ -97,6 +97,7 @@ public class SparkJavaJobAnalyzer {
         //Build the object to infer types of lambdas from source code
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
+        
         //TODO: Here we assume that any necessary type to be resolved for the file is within the parent dir
         String sourceCodeDirToAnalyze = new File(fileToAnalyze).getParentFile().getAbsolutePath();
         if (DEBUG) sourceCodeDirToAnalyze = defaultSrcToAnalyze;
