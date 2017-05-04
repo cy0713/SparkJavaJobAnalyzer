@@ -12,8 +12,9 @@ public class SparkJavaSimpleTextAnalysis {
 		
 		SparkConf conf = new SparkConf().setAppName("SimpleTextAnalysisSparkJava");
 		JavaSparkContext sc = new JavaSparkContext(conf);
-		Stream<String> distFile = Stream.of(""); //sc.textFile("data.txt");
+		JavaRDD<String> distFile = sc.textFile("data.txt");// Stream.of(""); //
 		distFile.map(s -> s.length()); //.reduce((a, b) -> a + b);
+		distFile.count();
 		
 	}
 

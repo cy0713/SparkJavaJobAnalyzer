@@ -10,7 +10,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import junit.framework.TestCase;
-import main.java.analyzer.SparkJavaJobAnalyzer;
+import main.java.analyzer.JavaStreamsJobAnalyzer;
 import main.java.compiler.JobCompiler;
 import test.java.cases.TestTask;
 
@@ -53,7 +53,7 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		/*
 		 * STEP 2: Execute pushdown analysis on the analytics task
 		 */     
-        SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
+        JavaStreamsJobAnalyzer jobAnalyzer = new JavaStreamsJobAnalyzer();        
         // visit and print the methods names
         String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze).toString();
         //Load the results of the job analyzer (lambda map and modified code)

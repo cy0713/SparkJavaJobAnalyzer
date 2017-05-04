@@ -4,12 +4,12 @@ import java.io.IOException;
 
 import org.json.simple.JSONObject;
 
-import main.java.analyzer.SparkJavaJobAnalyzer;
+import main.java.analyzer.JavaStreamsJobAnalyzer;
 
 public class Executor {
 
 	public static void main(String[] args) throws IOException {		
-        SparkJavaJobAnalyzer analyzer = new SparkJavaJobAnalyzer();
+        JavaStreamsJobAnalyzer analyzer = new JavaStreamsJobAnalyzer();
         JSONObject result = analyzer.analyze(args[0]);
         System.out.println(result.toString());
 	}
