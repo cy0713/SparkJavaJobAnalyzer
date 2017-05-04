@@ -1,5 +1,6 @@
 package test.java;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -15,8 +16,8 @@ import test.java.cases.TestTask;
 
 public abstract class AbstractAnalyzerTest extends TestCase{
 	
-	protected final String TEST_PATH = "/media/raul/Data/Documentos/Recerca/"+
-        	"Proyectos/IOStack/Code/SparkJavaJobAnalyzer/src/test/resources";
+	protected final String TEST_PATH = Paths.get("").toAbsolutePath().toString()+
+			"/src/test/resources/";
 	
 	protected String outputStorletFileNormal = "test_data/storlet_output." + 
 				this.getClass().getName() + "_normal";
