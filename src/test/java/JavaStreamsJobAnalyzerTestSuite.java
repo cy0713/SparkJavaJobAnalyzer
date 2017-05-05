@@ -21,4 +21,4 @@ import test.java.cases.WordCountJava8StreamsTest;
         SimpleMaxCollectorTest.class,
         StreamVariableAssignmentTest.class
 })
-public class SparkJavaJobAnalyzerTestSuite {}
+public class JavaStreamsJobAnalyzerTestSuite {}

@@ -1,6 +1,7 @@
 package main.java.utils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.AbstractMap.SimpleEntry;
 
@@ -64,5 +65,22 @@ public class Utils {
 		obj.put("lambdas", jsonArray);
 		return obj;
 	}
-
+	
+	public static List<SimpleEntry<String, String>> getLambdasToMigrate(JSONObject json){		
+		List<SimpleEntry<String, String>> lambdasToMigrate = new ArrayList<>();
+		JSONArray jsonArray = (JSONArray) json.get("lambdas");
+		Iterator<JSONObject> it = jsonArray.listIterator();
+		while (it.hasNext()){
+			String lambdaSignature = (String) it.next().get("lambda-type-and-body");
+			lambdaSignature = lambdaSignature.replace(COMMA_REPLACEMENT_IN_PARAMS, ",");
+			lambdasToMigrate.add(new SimpleEntry<String, String>(
+					lambdaSignature.split(LAMBDA_TYPE_AND_BODY_SEPARATOR)[0], 
+					lambdaSignature.split(LAMBDA_TYPE_AND_BODY_SEPARATOR)[1]));
+		} 		
+		return lambdasToMigrate;
+	}
+	
+	public static String getModifiedJobCode(JSONObject json){
+		return (String) json.get("pushdown-job-code");
+	}
 }

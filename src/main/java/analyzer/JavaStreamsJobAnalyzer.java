@@ -61,11 +61,11 @@ public class JavaStreamsJobAnalyzer {
 	
 	protected HashMap<String, FlowControlGraph> identifiedStreams = new HashMap<String, FlowControlGraph>();
 	
-	protected String targetedDatasets = "(Stream)"
+	protected static String targetedDatasets = "(Stream)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	protected final String pushableTransformations = "(map|filter|flatMap)";
-	protected final String pushableActions = "(collect|count|iterator|reduce)";	
+	protected final static String pushableTransformations = "(map|filter|flatMap)";
+	protected final static String pushableActions = "(collect|count|iterator|reduce)";	
 	
 	protected final String migrationRulesPackage = "main.java.rules.migration." + jobType + ".";
 	protected final String modificationRulesPackage = "main.java.rules.modification." + jobType  + ".";
