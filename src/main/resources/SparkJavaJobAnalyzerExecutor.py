@@ -117,12 +117,11 @@ cmd += '/home/user/Desktop/SparkJobMigratory.java'
 proc = subprocess.Popen(cmd, shell=True)
 jobFile.close()
 
-time.sleep(1)
 '''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
+time.sleep(0.5)
 cmd = 'jar cfe /home/user/Desktop/SparkJobMigratory.jar home.user.Desktop.SparkJobMigratory /home/user/Desktop/SparkJobMigratory.class'
 proc = subprocess.Popen(cmd, shell=True)
     
 '''STEP 7: Execute the job against Swift'''
-
 cmd = 'bash /home/user/workspace/spark-2.1.0-bin-hadoop2.7/bin/spark-submit /home/user/Desktop/SparkJobMigratory.jar --jars /home/user/workspace/spark-2.1.0-bin-hadoop2.7/jars/stocator-1.0.9.jar'
 proc = subprocess.Popen(cmd, shell=True)
