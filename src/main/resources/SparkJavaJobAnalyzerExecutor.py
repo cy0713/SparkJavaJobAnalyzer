@@ -28,6 +28,7 @@ def executeJavaAnalyzer(pathToJAR, pathToJobFile):
         
     json_output = False
     for line in p.stdout:
+        print line
         if line.startswith("{\"original-job-code\":"): json_output = True
         if (json_output): jsonResult += line
     
@@ -40,7 +41,7 @@ def update_filter_params(lambdasToMigrate):
     headers = {}
     
     #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:27"
+    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:28"
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
 
@@ -48,7 +49,7 @@ def update_filter_params(lambdasToMigrate):
     headers['Content-Type'] = "application/json"
     
     lambdas_as_string = ''
-    index = 0
+    index = 1
     for x in lambdasToMigrate:
         lambdas_as_string+= str(index) + "-lambda=" + str(x['lambda-type-and-body']) + ","
         index+=1
@@ -116,6 +117,7 @@ cmd += '/home/user/Desktop/SparkJobMigratory.java'
 proc = subprocess.Popen(cmd, shell=True)
 jobFile.close()
 
+time.sleep(1)
 '''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
 cmd = 'jar cfe /home/user/Desktop/SparkJobMigratory.jar home.user.Desktop.SparkJobMigratory /home/user/Desktop/SparkJobMigratory.class'
 proc = subprocess.Popen(cmd, shell=True)

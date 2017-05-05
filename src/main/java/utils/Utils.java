@@ -74,8 +74,8 @@ public class Utils {
 			String lambdaSignature = (String) it.next().get("lambda-type-and-body");
 			lambdaSignature = lambdaSignature.replace(COMMA_REPLACEMENT_IN_PARAMS, ",");
 			lambdasToMigrate.add(new SimpleEntry<String, String>(
-					lambdaSignature.substring(0, lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)), 
-					lambdaSignature.substring(lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)+1)));
+					lambdaSignature.substring(lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)+1),
+					lambdaSignature.substring(0, lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR))));
 		} 		
 		return lambdasToMigrate;
 	}
