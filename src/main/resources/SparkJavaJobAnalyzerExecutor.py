@@ -10,6 +10,7 @@ from StringIO import StringIO
 import requests
 import keystoneclient.v2_0.client as keystone_client
 import subprocess
+import time
 
 
 URL_CRYSTAL_API = 'http://10.30.230.217:8000/'
@@ -39,7 +40,7 @@ def update_filter_params(lambdasToMigrate):
     headers = {}
     
     #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:26"
+    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:27"
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
 
@@ -86,7 +87,8 @@ def get_or_update_token():
             
         
 '''STEP 1: Execute the JobAnalyzer'''
-jsonObject = executeJavaAnalyzer('/home/user/Desktop/SparkJavaJobAnalyzer.jar', '/home/user/Desktop/WordCountJava8Streams.java')
+jsonObject = executeJavaAnalyzer('/home/user/Desktop/SparkJavaJobAnalyzer.jar', 
+                                 '/home/user/Desktop/SparkJavaSimpleTextAnalysis.java')
 
 '''STEP 2: Get the lambdas and the code of the Job'''
 lambdasToMigrate = jsonObject.get("lambdas")
@@ -104,16 +106,21 @@ if pushdown:
     jobToCompile = pushdownJobCode
 
 '''STEP 5: Compile pushdown job'''
-jobFile = open('/home/user/Desktop/WordCountJava8Streams_migratory.java', 'w')
-print >> jobFile, jobToCompile.replace("WordCountJava8Streams","WordCountJava8Streams_migratory")
-cmd = '/usr/bin/javac ' + '/home/user/Desktop/WordCountJava8Streams_migratory.java' 
+jobToCompile = jobToCompile.replace('package test.resources.test_jobs;',
+                                    'package home.user.Desktop;')
+
+jobFile = open('/home/user/Desktop/SparkJobMigratory.java', 'w')
+print >> jobFile, jobToCompile.replace("SparkJavaSimpleTextAnalysisJava8Translated", "SparkJobMigratory")
+cmd = '/usr/bin/javac ' + '-cp /home/user/Desktop/spark-core_2.11-2.1.0.jar:/home/user/Desktop/scala-library-2.12.2.jar '
+cmd += '/home/user/Desktop/SparkJobMigratory.java' 
 proc = subprocess.Popen(cmd, shell=True)
 jobFile.close()
+
+'''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
+cmd = 'jar cfe /home/user/Desktop/SparkJobMigratory.jar home.user.Desktop.SparkJobMigratory /home/user/Desktop/SparkJobMigratory.class'
+proc = subprocess.Popen(cmd, shell=True)
     
-'''STEP 6: Execute the job against Swift'''
-    
- 
+'''STEP 7: Execute the job against Swift'''
 
-
-
-
+cmd = 'bash /home/user/workspace/spark-2.1.0-bin-hadoop2.7/bin/spark-submit /home/user/Desktop/SparkJobMigratory.jar --jars /home/user/workspace/spark-2.1.0-bin-hadoop2.7/jars/stocator-1.0.9.jar'
+proc = subprocess.Popen(cmd, shell=True)

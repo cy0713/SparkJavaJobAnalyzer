@@ -7,7 +7,7 @@ import main.java.analyzer.JavaStreamsJobAnalyzer;
 import main.java.analyzer.SparkJavaJobAnalyzer;
 import test.java.AbstractAnalyzerTest;
 
-public class SimpleTextAnalysisSpark extends TestCase{	
+public class SimpleTextAnalysisSparkTest extends TestCase{	
 	
 	protected final String TEST_PATH = Paths.get("").toAbsolutePath().toString()+
 			"/src/test/resources/";

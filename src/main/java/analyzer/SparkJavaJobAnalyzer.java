@@ -4,22 +4,20 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.AbstractMap.SimpleEntry;
-
-import org.json.simple.JSONObject;
-
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
+import java.util.List;
+import java.util.stream.Stream;
 
 import main.java.analyzer.visitor.StatementsExtractor;
 import main.java.analyzer.visitor.StreamIdentifierVisitor;
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
-import main.java.graph.algorithms.SafeLambdaMigrationFinder;
 import main.java.utils.Utils;
+
+import org.json.simple.JSONObject;
+
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
 
 public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 
@@ -76,13 +74,11 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
     			translatedJobCode = translatedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
            	}
         }  
-        
-        System.out.println(translatedJobCode);
         	
         //Create a new file with the job translated into JavaStreams classes and functions
         String className = Paths.get(fileToAnalyze).getFileName().toString().replace(".java", "");
-        translatedJobCode = translatedJobCode.replace(className, className+"JavaStreamsTranslated");
-        String translatedJobPath = Paths.get(fileToAnalyze.replace(".java", "JavaStreamsTranslated.java")).toString();
+        translatedJobCode = translatedJobCode.replace(className, className+"Java8Translated");
+        String translatedJobPath = Paths.get(fileToAnalyze.replace(".java", "Java8Translated.java")).toString();
         try (PrintWriter out = new PrintWriter(translatedJobPath)){
             out.println(translatedJobCode);
         } catch (FileNotFoundException e) {
@@ -95,6 +91,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         List<SimpleEntry<String, String>> lambdasToMigrate = Utils.getLambdasToMigrate(result);
         String modifiedJobCode =  Utils.getModifiedJobCode(result);
         
+        System.out.println(modifiedJobCode);
         //Parse the job file
         CompilationUnit cu2 = JavaParser.parse(modifiedJobCode); 
         
@@ -102,11 +99,11 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         identifiedStreams.clear();
         
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
-        new StreamIdentifierVisitor(JavaStreamsJobAnalyzer.targetedDatasets, identifiedStreams).visit(cu, null);
+        new StreamIdentifierVisitor(JavaStreamsJobAnalyzer.targetedDatasets, identifiedStreams).visit(cu2, null);
         
         //Second, once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
         new StatementsExtractor(identifiedStreams, JavaStreamsJobAnalyzer.pushableTransformations, 
-        		JavaStreamsJobAnalyzer.pushableActions, null).visit(cu, null); 
+        		JavaStreamsJobAnalyzer.pushableActions, null).visit(cu2, null); 
         
         //Next, we need to update the job code in the case the flow graph has changed
         for (String key: identifiedStreams.keySet()){

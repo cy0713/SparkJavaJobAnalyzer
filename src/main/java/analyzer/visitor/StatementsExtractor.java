@@ -108,7 +108,7 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	        	e.printStackTrace();
 	        }
 		}			
-		
+		if (lastLambdaIndex==0) lastLambdaIndex=expressionString.indexOf(".");
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
 		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
 		//There is only a single terminal operation in the expression

@@ -73,7 +73,7 @@ public class JavaStreamsJobAnalyzer {
 	/* ********************************************* */
 	/* IMPORTANT: For tests to work, this MUST be true. For a jar release, this MUST be false.*/
 	/* ********************************************* */
-	protected final static boolean DEBUG = true;
+	protected final static boolean DEBUG = false;
 	protected final static String defaultSrcToAnalyze = "src/"; //For testing purposes
 	
 	protected JavaParserFacade javaParserFacade;

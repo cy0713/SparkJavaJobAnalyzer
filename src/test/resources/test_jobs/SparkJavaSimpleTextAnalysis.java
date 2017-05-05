@@ -1,7 +1,5 @@
 package test.resources.test_jobs;
 
-import java.util.stream.Stream;
-
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -12,7 +10,7 @@ public class SparkJavaSimpleTextAnalysis {
 		
 		SparkConf conf = new SparkConf().setAppName("SimpleTextAnalysisSparkJava");
 		JavaSparkContext sc = new JavaSparkContext(conf);
-		JavaRDD<String> distFile = sc.textFile("data.txt");
+		JavaRDD<String> distFile = sc.textFile("swift2d://data1.lvm/hamlet.txt");
 		distFile.map(s -> s.length()).count();		
 	}
 
