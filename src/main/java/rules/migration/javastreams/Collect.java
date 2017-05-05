@@ -1,4 +1,4 @@
-package main.java.rules.migration;
+package main.java.rules.migration.javastreams;
 
 import java.lang.reflect.Method;
 import java.util.stream.Collectors;

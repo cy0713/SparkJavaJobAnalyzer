@@ -1,4 +1,4 @@
-package main.java.rules.modification;
+package main.java.rules.modification.javastreams;
 
 import main.java.graph.GraphNode;
 import main.java.rules.LambdaRule;

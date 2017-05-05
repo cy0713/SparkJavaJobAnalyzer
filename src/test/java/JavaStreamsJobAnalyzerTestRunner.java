@@ -4,11 +4,11 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
-public class SparkJavaJobAnalyzerTestRunner {
+public class JavaStreamsJobAnalyzerTestRunner {
 	
 
    public static void main(String[] args) {
-      Result result = JUnitCore.runClasses(SparkJavaJobAnalyzerTestSuite.class);
+      Result result = JUnitCore.runClasses(JavaStreamsJobAnalyzerTestSuite.class);
 		
       for (Failure failure : result.getFailures()) {
          System.out.println(failure.toString());
