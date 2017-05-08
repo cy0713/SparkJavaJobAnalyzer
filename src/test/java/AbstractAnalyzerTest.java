@@ -55,7 +55,7 @@ public abstract class AbstractAnalyzerTest extends TestCase{
 		 */     
         JavaStreamsJobAnalyzer jobAnalyzer = new JavaStreamsJobAnalyzer();        
         // visit and print the methods names
-        String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze).toString();
+        String pushdownAnalysisResult = jobAnalyzer.analyze(this.TEST_PATH + jobToAnalyze, true).toString();
         //Load the results of the job analyzer (lambda map and modified code)
         loadAnalyzerResults(pushdownAnalysisResult);
         

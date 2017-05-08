@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
-import java.util.stream.Stream;
 
 import main.java.analyzer.visitor.StatementsExtractor;
 import main.java.analyzer.visitor.StreamIdentifierVisitor;
@@ -30,6 +29,8 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 	protected final String pushableActions = "(collect|count|iterator|reduce)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
+	
+	protected final String translatedFilename = "Java8Translated";
 	
 	public JSONObject analyze (String fileToAnalyze) {
 		
@@ -77,13 +78,14 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         	
         //Create a new file with the job translated into JavaStreams classes and functions
         String className = Paths.get(fileToAnalyze).getFileName().toString().replace(".java", "");
-        translatedJobCode = translatedJobCode.replace(className, className+"Java8Translated");
-        String translatedJobPath = Paths.get(fileToAnalyze.replace(".java", "Java8Translated.java")).toString();
+        translatedJobCode = translatedJobCode.replace(className, className + translatedFilename);
+        String translatedJobPath = Paths.get(fileToAnalyze.replace(".java", translatedFilename+".java")).toString();
         try (PrintWriter out = new PrintWriter(translatedJobPath)){
             out.println(translatedJobCode);
         } catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+        
         //Execute the JavaStreams analyzer on the translated job
         JavaStreamsJobAnalyzer javaStreamsAnalyzer = new JavaStreamsJobAnalyzer();
         JSONObject result = javaStreamsAnalyzer.analyze(translatedJobPath);

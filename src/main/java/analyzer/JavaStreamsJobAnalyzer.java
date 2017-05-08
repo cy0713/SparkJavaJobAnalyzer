@@ -73,7 +73,7 @@ public class JavaStreamsJobAnalyzer {
 	/* ********************************************* */
 	/* IMPORTANT: For tests to work, this MUST be true. For a jar release, this MUST be false.*/
 	/* ********************************************* */
-	protected final static boolean DEBUG = false;
+	protected static boolean DEBUG = false;
 	protected final static String defaultSrcToAnalyze = "src/"; //For testing purposes
 	
 	protected JavaParserFacade javaParserFacade;
@@ -142,6 +142,11 @@ public class JavaStreamsJobAnalyzer {
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return Utils.encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);
+	}
+	
+	public JSONObject analyze (String fileToAnalyze, boolean debug) {
+		DEBUG = debug;
+		return analyze(fileToAnalyze);
 	}
 	
 	protected CombinedTypeSolver getTypeSolver(String fileToAnalyze){
