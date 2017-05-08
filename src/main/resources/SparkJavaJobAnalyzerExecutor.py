@@ -49,7 +49,7 @@ def update_filter_params(lambdasToMigrate):
     headers['Content-Type'] = "application/json"
     
     lambdas_as_string = ''
-    index = 1
+    index = 0
     for x in lambdasToMigrate:
         lambdas_as_string+= str(index) + "-lambda=" + str(x['lambda-type-and-body']) + ","
         index+=1
@@ -104,14 +104,15 @@ jobToCompile = originalJobCode
 if pushdown:
     '''STEP 4: Set the lambdas in the storlet'''
     update_filter_params(lambdasToMigrate)
-    jobToCompile = pushdownJobCode
+    jobToCompile = pushdownJobCode.replace("SparkJavaSimpleTextAnalysisJava8Translated", "SparkJobMigratory")
+else: jobToCompile = jobToCompile.replace("SparkJavaSimpleTextAnalysis", "SparkJobMigratory")
 
 '''STEP 5: Compile pushdown job'''
-jobToCompile = jobToCompile.replace('package test.resources.test_jobs;',
-                                    'package home.user.Desktop;')
+#FIXME: This should be improved!
+jobToCompile = jobToCompile.replace('package test.resources.test_jobs;', 'package home.user.Desktop;')
 
 jobFile = open('/home/user/Desktop/SparkJobMigratory.java', 'w')
-print >> jobFile, jobToCompile.replace("SparkJavaSimpleTextAnalysisJava8Translated", "SparkJobMigratory")
+print >> jobFile, jobToCompile
 cmd = '/usr/bin/javac ' + '-cp /home/user/Desktop/spark-core_2.11-2.1.0.jar:/home/user/Desktop/scala-library-2.12.2.jar '
 cmd += '/home/user/Desktop/SparkJobMigratory.java' 
 proc = subprocess.Popen(cmd, shell=True)
