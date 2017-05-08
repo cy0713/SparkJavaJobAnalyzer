@@ -12,6 +12,7 @@ import java.util.Iterator;
 public class FlowControlGraph implements Iterable<GraphNode>{
 	
 	private String rdd = "";
+	private String type = "";
 	
 	private String oiriginRDD;
 	private boolean linked;
@@ -105,6 +106,14 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 
 	public void setLastNode(GraphNode lastNode) {
 		this.lastNode = lastNode;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
 	}
 }
 

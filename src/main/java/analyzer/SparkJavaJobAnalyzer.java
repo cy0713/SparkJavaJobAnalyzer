@@ -5,10 +5,14 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.HashMap;
 import java.util.List;
 
 import main.java.analyzer.visitor.StatementsExtractor;
 import main.java.analyzer.visitor.StreamIdentifierVisitor;
+import main.java.dataset.SparkDatasetTranslation;
+import main.java.dataset.reverse.sparkjava.RDDReverse;
+import main.java.dataset.translation.sparkjava.RDDTranslator;
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
 import main.java.utils.Utils;
@@ -29,6 +33,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 	protected final String pushableActions = "(collect|count|iterator|reduce)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
+	protected final String reverseRulesPackage = "main.java.rules.reverse." + jobType  + ".";
 	
 	protected final String translatedFilename = "Java8Translated";
 	
@@ -57,19 +62,19 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         		pushableActions, null).visit(cu, null); 
         
         //Next, we apply translation rules so the Spark job is understandable by the JavaStreams analyzer
-        System.out.println(">>>>>>>>>" + translationRulesPackage);
         for (String key: identifiedStreams.keySet()){
         	applyRulesToControlFlowGraph(identifiedStreams.get(key), translationRulesPackage);
         }      
         
         //Translate specific Spark Jobs classes/RDD calls into JavaStreams classes/calls 
         for (String key: identifiedStreams.keySet()){
-        	FlowControlGraph graph = identifiedStreams.get(key);
-        	//FIXME: Maybe we need rules also for variables
-        	translatedJobCode = translatedJobCode.replace("import org.apache.spark.api.java.JavaRDD;", 
-        			"import java.util.stream.Stream;");
-        	translatedJobCode = translatedJobCode.replace("JavaRDD", "Stream");
-        	translatedJobCode = translatedJobCode.replace("sc.textFile", "Stream.of");
+        	FlowControlGraph graph = identifiedStreams.get(key);  
+        	//Instantiate the class and execute the translation to Java8 streams
+			SparkDatasetTranslation datasetTranslator = new RDDTranslator();
+			translatedJobCode = datasetTranslator.applyDatasetTranslation(graph.getRdd(), 
+					graph.getType(), translatedJobCode);
+
+        	//Perform the translation for each of the lambdas of the dataset
         	for (GraphNode node: identifiedStreams.get(key)){
         		//Modify the original's job code according to translation rules
     			translatedJobCode = translatedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
@@ -98,28 +103,27 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         CompilationUnit cu2 = JavaParser.parse(modifiedJobCode); 
         
         //Now we focus on the new modified job that should be translated back to Spark calls
-        identifiedStreams.clear();
+        HashMap<String, FlowControlGraph> translatedIdentifiedStreams = new HashMap<>();
         
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
-        new StreamIdentifierVisitor(JavaStreamsJobAnalyzer.targetedDatasets, identifiedStreams).visit(cu2, null);
+        new StreamIdentifierVisitor(JavaStreamsJobAnalyzer.targetedDatasets, translatedIdentifiedStreams).visit(cu2, null);
         
         //Second, once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
-        new StatementsExtractor(identifiedStreams, JavaStreamsJobAnalyzer.pushableTransformations, 
+        new StatementsExtractor(translatedIdentifiedStreams, JavaStreamsJobAnalyzer.pushableTransformations, 
         		JavaStreamsJobAnalyzer.pushableActions, null).visit(cu2, null); 
         
         //Next, we need to update the job code in the case the flow graph has changed
-        for (String key: identifiedStreams.keySet()){
-        	applyRulesToControlFlowGraph(identifiedStreams.get(key), modificationRulesPackage);
+        for (String key: translatedIdentifiedStreams.keySet()){
+        	applyRulesToControlFlowGraph(translatedIdentifiedStreams.get(key), reverseRulesPackage);
         } 
-
-        //FIXME: Maybe we need rules also for variables
-    	modifiedJobCode = modifiedJobCode.replace("import java.util.stream.Stream;",
-    			"import org.apache.spark.api.java.JavaRDD;");
-    	modifiedJobCode = modifiedJobCode.replace("Stream.of", "sc.textFile");
-    	modifiedJobCode = modifiedJobCode.replace("Stream", "JavaRDD");
     	
-        for (String key: identifiedStreams.keySet()){        	
-        	for (GraphNode node: identifiedStreams.get(key)){
+        for (String key: translatedIdentifiedStreams.keySet()){  
+        	FlowControlGraph graph = identifiedStreams.get(key);  
+        	//Instantiate the class and execute the translation to Java8 streams
+			SparkDatasetTranslation datasetTranslator = new RDDReverse();
+			modifiedJobCode = datasetTranslator.applyDatasetTranslation(graph.getRdd(), 
+					graph.getType(), translatedJobCode);
+        	for (GraphNode node: translatedIdentifiedStreams.get(key)){
         		//Modify the original's job code according to modification rules
         		modifiedJobCode = modifiedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
         	}

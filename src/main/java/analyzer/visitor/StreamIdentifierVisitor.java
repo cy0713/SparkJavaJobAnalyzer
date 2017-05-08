@@ -31,13 +31,14 @@ public class StreamIdentifierVisitor extends ModifierVisitor<Void> {
 
 	@Override
     public Node visit(VariableDeclarator declarator, Void args) {	
-		//TODO: Limitation here, we need a variable declared to find it, so this
+		//FIXME: Limitation here, we need a variable declared to find it, so this
 		//does not work with an anonymous declaration like createStream().stream().lambdas...
 		Matcher matcher = datasetsPattern.matcher(declarator.getType().toString());
 		//Check if we found and in memory data structure like an RDD
      	if (matcher.find()){
      		String streamVariable = declarator.getChildNodes().get(0).toString();
      		FlowControlGraph graph = new FlowControlGraph(streamVariable);
+     		graph.setType(declarator.getType().toString());
      		identifiedStreams.put(streamVariable, graph);
      		String name = declarator.getChildNodes().get(1).toString().trim();
      		//Maybe there is an even simpler way of doing this
