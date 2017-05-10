@@ -11,11 +11,11 @@ public class MapToPair implements LambdaRule {
 		//FIXME: Do this with regex
 		String result = graphNode.getLambdaSignature().substring(
 				graphNode.getLambdaSignature().indexOf("new "),
-				graphNode.getLambdaSignature().lastIndexOf(">")+2);
-		
+				graphNode.getLambdaSignature().lastIndexOf(">")+2);		
 		int index = 0;
 		for (String p: Utils.getParametersFromSignature(result.substring(0, result.length()-2).replace("new Tuple2<", ""))){
-			if (p.equals("java.lang.String") || p.equals("String")) result += "word.split(\"=\")[" + index +"],";
+			if (p.equals("java.lang.String") || p.equals("String")) 
+				result += "word.split(\"=\")[" + index +"],";
 			else result += p + ".valueOf(word.split(\"=\")[" + index +"]), ";
 			index++;
 		}

@@ -47,7 +47,7 @@ def update_filter_params(lambdasToMigrate):
     headers = {}
     
     #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:28"
+    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:29"
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
 
@@ -112,7 +112,7 @@ def main(argv=None):
     
     '''STEP 3: Decide whether or not to execute the lambda pushdown'''
     '''TODO: This will be the second phase'''
-    pushdown = True
+    pushdown = False
     jobToCompile = originalJobCode
     
     '''STEP 4: Set the lambdas in the storlet if necessary'''
@@ -152,10 +152,10 @@ def main(argv=None):
     proc = subprocess.Popen(cmd, shell=True)
     
     '''STEP 8: Clean files'''
-    time.sleep(1)
-    os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.java')
-    os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.class')
-    os.remove(EXECUTOR_LOCATION + spark_job_name + 'Java8Translated.java')
+    #time.sleep(1)
+    #os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.java')
+    #os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.class')
+    #os.remove(EXECUTOR_LOCATION + spark_job_name + 'Java8Translated.java')
     
     
 if __name__ == "__main__":
