@@ -1,4 +1,4 @@
-package main.java.rules.modification.javastreams;
+package main.java.rules.reverse.sparkjava;
 
 import java.util.List;
 
@@ -6,10 +6,11 @@ import main.java.graph.GraphNode;
 import main.java.rules.LambdaRule;
 import main.java.utils.Utils;
 
-public class ActionModificationRule implements LambdaRule{
+public class ActionModificationRuleSpark implements LambdaRule{
 	
 	@Override
 	public void applyRule(GraphNode graphNode) {
+		//TODO: ADAPT THIS TO THE NEEDS OF SPARK JOBS
 		//We need a map for the last type prior to the collector/action
 		List<String> nodeParams = graphNode.getPreviousNode().getTypeParametersAsList();
 		if (!nodeParams.get(nodeParams.size()-1).equals("java.lang.String")){
@@ -25,10 +26,10 @@ public class ActionModificationRule implements LambdaRule{
 		if (!lastParameter.contains(",") && !lastParameter.contains("<"))
 			return "new " + lastParameter + "(s)";
 		//At the moment, only consider simple type parameters like Integer, String or Long
-		if (lastParameter.startsWith("java.util.AbstractMap.SimpleEntry")){
+		if (lastParameter.startsWith("Tuple2")){
 			List<String> params = Utils.getParametersFromSignature(
-					lastParameter.replace("java.util.AbstractMap.SimpleEntry<", "").replace(">", ""));
-			String result = "new java.util.AbstractMap.SimpleEntry<" + params.get(0) +"," + params.get(1)+ ">(";
+					lastParameter.replace("Tuple2<", "").replace(">", ""));
+			String result = "new Tuple2<" + params.get(0) +"," + params.get(1)+ ">(";
 			int index = 0;
 			for (String p: params){
 				if (p.equals("java.lang.String")) result += "s.split(\"=\")[" + index +"],";

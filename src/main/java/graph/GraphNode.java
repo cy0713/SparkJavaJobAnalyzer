@@ -30,13 +30,13 @@ public class GraphNode {
 	private String codeReplacement = "";	
 	
 	private List<FlowControlGraph> assignedRDDs = new ArrayList<>();
+	private FlowControlGraph myRDD;
 	
 	public List<String> getTypeParametersAsList() {
 		if (functionType==null || functionType.equals("Collector")) return null;
 		String cleanParameters = functionType.replace("java.util.function.Predicate<", "")
 											 .replace("java.util.function.Function<", "");
 		cleanParameters = cleanParameters.substring(0, cleanParameters.lastIndexOf(">"));
-		System.out.println("CLEAN PARAMETERS: " + cleanParameters);
 		return Utils.getParametersFromSignature(cleanParameters);							 
 	}
 		
@@ -115,6 +115,13 @@ public class GraphNode {
 
 	public void setAssignedRDDs(List<FlowControlGraph> assignedRDDs) {
 		this.assignedRDDs = assignedRDDs;
+	}
+
+	public FlowControlGraph getMyRDD() {
+		return myRDD;
+	}
+
+	public void setMyRDD(FlowControlGraph myRDD) {
+		this.myRDD = myRDD;
 	}	
-	
 }

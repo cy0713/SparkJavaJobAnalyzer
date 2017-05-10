@@ -1,3 +1,3 @@
 package main.java.rules.modification.javastreams;
 
-public class Iterator extends ActionModificationRule {}
+public class Iterator extends ActionModificationRuleJavastreams {}

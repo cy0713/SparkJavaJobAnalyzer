@@ -37,6 +37,7 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 		toAdd.setTerminal(terminal);
 		toAdd.setLambdaSignature(operation);
 		toAdd.setFunctionType(functionType);
+		toAdd.setMyRDD(this);
 		if (root==null) {
 			root = lastNode = toAdd;
 		}else{

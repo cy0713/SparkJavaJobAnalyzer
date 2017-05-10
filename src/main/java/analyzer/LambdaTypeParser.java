@@ -43,6 +43,7 @@ public class LambdaTypeParser {
 				&& hasDefinedGenerics();
 	}
 	
+	@Deprecated
 	public String solveTypeFromGraph(GraphNode node) {
 		//First, try to address the problem of unknown input type for first lambda
 		if (node.getPreviousNode()==null)

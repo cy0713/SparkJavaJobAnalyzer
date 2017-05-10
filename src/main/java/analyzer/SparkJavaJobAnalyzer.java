@@ -15,6 +15,7 @@ import main.java.dataset.reverse.sparkjava.RDDReverse;
 import main.java.dataset.translation.sparkjava.RDDTranslator;
 import main.java.graph.FlowControlGraph;
 import main.java.graph.GraphNode;
+import main.java.rules.LambdaRule;
 import main.java.utils.Utils;
 
 import org.json.simple.JSONObject;
@@ -26,10 +27,10 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 
 	protected final String jobType = "sparkjava";
 
-	protected static String targetedDatasets = "(JavaRDD)"
+	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	protected final String pushableTransformations = "(map|filter|flatMap)";
+	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey)";
 	protected final String pushableActions = "(collect|count|iterator|reduce)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
@@ -57,7 +58,8 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
         new StreamIdentifierVisitor(targetedDatasets, identifiedStreams).visit(cu, null);
         
-        //Second, once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
+        //Second, once we have the streams identified, we have to inspect each one looking 
+        //for safe lambdas to push down      
         new StatementsExtractor(identifiedStreams, pushableTransformations, 
         		pushableActions, null).visit(cu, null); 
         
@@ -73,7 +75,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 			SparkDatasetTranslation datasetTranslator = new RDDTranslator();
 			translatedJobCode = datasetTranslator.applyDatasetTranslation(graph.getRdd(), 
 					graph.getType(), translatedJobCode);
-
+			translatedJobCode = translatedJobCode.replace("scala.Tuple2", "java.util.AbstractMap.SimpleEntry");
         	//Perform the translation for each of the lambdas of the dataset
         	for (GraphNode node: identifiedStreams.get(key)){
         		//Modify the original's job code according to translation rules
@@ -90,45 +92,44 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         } catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-        
+        System.out.println(translatedJobCode);
         //Execute the JavaStreams analyzer on the translated job
         JavaStreamsJobAnalyzer javaStreamsAnalyzer = new JavaStreamsJobAnalyzer();
         JSONObject result = javaStreamsAnalyzer.analyze(translatedJobPath);
         //The lambdas to migrate should be Java8 Stream lambdas, as they will be executed by the Storlet
         List<SimpleEntry<String, String>> lambdasToMigrate = Utils.getLambdasToMigrate(result);
-        String modifiedJobCode =  Utils.getModifiedJobCode(result);
+        String modifiedJobCode =  originalJobCode;
         
-        System.out.println(modifiedJobCode);
-        //Parse the job file
-        CompilationUnit cu2 = JavaParser.parse(modifiedJobCode); 
-        
-        //Now we focus on the new modified job that should be translated back to Spark calls
-        HashMap<String, FlowControlGraph> translatedIdentifiedStreams = new HashMap<>();
-        
-        //First, get all the variables of type Stream, as they are the candidates to push down lambdas
-        new StreamIdentifierVisitor(JavaStreamsJobAnalyzer.targetedDatasets, translatedIdentifiedStreams).visit(cu2, null);
-        
-        //Second, once we have the streams identified, we have to inspect each one looking for safe lambdas to push down      
-        new StatementsExtractor(translatedIdentifiedStreams, JavaStreamsJobAnalyzer.pushableTransformations, 
-        		JavaStreamsJobAnalyzer.pushableActions, null).visit(cu2, null); 
-        
-        //Next, we need to update the job code in the case the flow graph has changed
-        for (String key: translatedIdentifiedStreams.keySet()){
-        	applyRulesToControlFlowGraph(translatedIdentifiedStreams.get(key), reverseRulesPackage);
-        } 
-    	
-        for (String key: translatedIdentifiedStreams.keySet()){  
-        	FlowControlGraph graph = identifiedStreams.get(key);  
-        	//Instantiate the class and execute the translation to Java8 streams
-			SparkDatasetTranslation datasetTranslator = new RDDReverse();
-			modifiedJobCode = datasetTranslator.applyDatasetTranslation(graph.getRdd(), 
-					graph.getType(), translatedJobCode);
-        	for (GraphNode node: translatedIdentifiedStreams.get(key)){
-        		//Modify the original's job code according to modification rules
-        		modifiedJobCode = modifiedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
-        	}
-        }  
-        System.out.println(modifiedJobCode);
+        LambdaRule pushdownLambdaRule = null;
+        for (String rddName: identifiedStreams.keySet()){
+	        for (GraphNode node: identifiedStreams.get(rddName)){  
+	        	System.out.println(reverseRulesPackage + ": " + node.toString());
+	        	String functionName = node.getFunctionName();
+	        	for (SimpleEntry<String, String> theLambda: lambdasToMigrate){
+	        		System.err.println(">>>>>>>" + node.getCodeReplacement());
+	        		System.err.println(">>>>>>>" + theLambda);
+	        		System.err.println("---------------");
+	        		if (node.getCodeReplacement().equals(theLambda.getKey())){
+	        			System.err.println("ENTRAMOOOS");
+	        			try {
+							//Instantiate the class that contains the rules to pushdown a given lambda
+							pushdownLambdaRule = (LambdaRule) Class.forName(
+									reverseRulesPackage + new String(functionName.substring(0, 1)).toUpperCase() +
+									functionName.substring(1, functionName.length())).newInstance();
+							//Get whether the current lambda can be pushed down or not
+							pushdownLambdaRule.applyRule(node);
+							String codeReplacement = "";
+							if (!node.getCodeReplacement().equals(""))
+								codeReplacement =  "." + node.getCodeReplacement();
+							modifiedJobCode = modifiedJobCode.replace("." + node.getLambdaSignature(), codeReplacement);
+						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+							System.err.println("No rule for lambda: " + functionName + " in " + reverseRulesPackage);
+						}
+	        		}
+	        	}				
+	        }		
+		}	        
+
         //The control plane is in Python, so the caller script will need to handle this result
         //and distinguish between the lambdas to pushdown and the code of the job to submit
         return Utils.encodeResponse(originalJobCode, modifiedJobCode, lambdasToMigrate);

@@ -19,8 +19,9 @@ public class SparkJavaWordCount {
 		JavaRDD<String> textFile = sc.textFile("swift2d://data1.lvm/hamlet.txt");
 		JavaPairRDD<String, Integer> counts = textFile
 		    .flatMap(s -> Arrays.asList(s.split(" ")).iterator())
-		    .mapToPair(word -> new Tuple2<>(word, 1))
+		    .mapToPair(word -> new Tuple2<String, Integer>(word, 1))
 		    .reduceByKey((a, b) -> a + b);
+		
 		counts.saveAsTextFile("swift2d://data1.lvm/hamlet_result.txt");		
 	}
 }
