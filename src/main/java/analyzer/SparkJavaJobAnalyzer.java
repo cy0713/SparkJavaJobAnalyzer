@@ -5,23 +5,21 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.HashMap;
 import java.util.List;
-
-import main.java.analyzer.visitor.StatementsExtractor;
-import main.java.analyzer.visitor.StreamIdentifierVisitor;
-import main.java.dataset.SparkDatasetTranslation;
-import main.java.dataset.reverse.sparkjava.RDDReverse;
-import main.java.dataset.translation.sparkjava.RDDTranslator;
-import main.java.graph.FlowControlGraph;
-import main.java.graph.GraphNode;
-import main.java.rules.LambdaRule;
-import main.java.utils.Utils;
 
 import org.json.simple.JSONObject;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+
+import main.java.analyzer.visitor.StatementsExtractor;
+import main.java.analyzer.visitor.StreamIdentifierVisitor;
+import main.java.dataset.SparkDatasetTranslation;
+import main.java.dataset.translation.sparkjava.RDDTranslator;
+import main.java.graph.FlowControlGraph;
+import main.java.graph.GraphNode;
+import main.java.rules.LambdaRule;
+import main.java.utils.Utils;
 
 public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 
@@ -106,11 +104,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 	        	System.out.println(reverseRulesPackage + ": " + node.toString());
 	        	String functionName = node.getFunctionName();
 	        	for (SimpleEntry<String, String> theLambda: lambdasToMigrate){
-	        		System.err.println(">>>>>>>" + node.getCodeReplacement());
-	        		System.err.println(">>>>>>>" + theLambda);
-	        		System.err.println("---------------");
 	        		if (node.getCodeReplacement().equals(theLambda.getKey())){
-	        			System.err.println("ENTRAMOOOS");
 	        			try {
 							//Instantiate the class that contains the rules to pushdown a given lambda
 							pushdownLambdaRule = (LambdaRule) Class.forName(
