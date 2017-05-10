@@ -15,8 +15,8 @@ public class MapToPair implements LambdaRule {
 		
 		int index = 0;
 		for (String p: Utils.getParametersFromSignature(result.substring(0, result.length()-2).replace("new Tuple2<", ""))){
-			if (p.equals("java.lang.String") || p.equals("String")) result += "s.split(\"=\")[" + index +"],";
-			else result += p + ".valueOf(s.split(\"=\")[" + index +"]), ";
+			if (p.equals("java.lang.String") || p.equals("String")) result += "word.split(\"=\")[" + index +"],";
+			else result += p + ".valueOf(word.split(\"=\")[" + index +"]), ";
 			index++;
 		}
 		System.err.println(result);		
