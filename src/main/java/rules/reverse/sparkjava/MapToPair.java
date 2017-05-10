@@ -20,6 +20,6 @@ public class MapToPair implements LambdaRule {
 			index++;
 		}
 		System.err.println(result);		
-		graphNode.setCodeReplacement("mapToPair(word -> " + result.substring(0, result.length()-2) + ")");
+		graphNode.setCodeReplacement("mapToPair(word -> " + result.substring(0, result.length()-2) + "))");
 	}
 }
