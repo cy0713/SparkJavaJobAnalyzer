@@ -11,6 +11,8 @@ import requests
 import keystoneclient.v2_0.client as keystone_client
 import subprocess
 import time
+import sys
+import os
 
 
 URL_CRYSTAL_API = 'http://10.30.230.217:8000/'
@@ -18,6 +20,10 @@ AUTH_URL='http://10.30.230.217:5000/v2.0'
 USERNAME='admin'
 PASSWORD='admin'
 TENANT='crystaltest'
+EXECUTOR_LOCATION = '/home/user/Desktop/'
+SPARK_LIBS_LOCATION = '/home/user/Desktop/'
+JAVAC_PATH = '/usr/bin/javac'
+SPARK_FOLDER = '/home/user/workspace/spark-2.1.0-bin-hadoop2.7/'
 
 valid_token = None
 
@@ -85,44 +91,72 @@ def get_or_update_token():
         print "AUTH TOKEN: ", valid_token
         
     return valid_token  
-            
-        
-'''STEP 1: Execute the JobAnalyzer'''
-jsonObject = executeJavaAnalyzer('/home/user/Desktop/SparkJavaJobAnalyzer.jar', 
-                                 '/home/user/Desktop/SparkJavaSimpleTextAnalysis.java')
-
-'''STEP 2: Get the lambdas and the code of the Job'''
-lambdasToMigrate = jsonObject.get("lambdas")
-originalJobCode = jsonObject.get("original-job-code")
-pushdownJobCode = jsonObject.get("pushdown-job-code")
-
-'''STEP 3: Decide whether or not to execute the lambda pushdown'''
-'''TODO: This will be the second phase'''
-pushdown = True
-jobToCompile = originalJobCode
-
-if pushdown:
-    '''STEP 4: Set the lambdas in the storlet'''
-    update_filter_params(lambdasToMigrate)
-    jobToCompile = pushdownJobCode.replace("SparkJavaSimpleTextAnalysisJava8Translated", "SparkJobMigratory")
-else: jobToCompile = jobToCompile.replace("SparkJavaSimpleTextAnalysis", "SparkJobMigratory")
-
-'''STEP 5: Compile pushdown job'''
-#FIXME: This should be improved!
-jobToCompile = jobToCompile.replace('package test.resources.test_jobs;', 'package home.user.Desktop;')
-
-jobFile = open('/home/user/Desktop/SparkJobMigratory.java', 'w')
-print >> jobFile, jobToCompile
-cmd = '/usr/bin/javac ' + '-cp /home/user/Desktop/spark-core_2.11-2.1.0.jar:/home/user/Desktop/scala-library-2.12.2.jar '
-cmd += '/home/user/Desktop/SparkJobMigratory.java' 
-proc = subprocess.Popen(cmd, shell=True)
-jobFile.close()
-
-'''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
-time.sleep(0.5)
-cmd = 'jar cfe /home/user/Desktop/SparkJobMigratory.jar home.user.Desktop.SparkJobMigratory /home/user/Desktop/SparkJobMigratory.class'
-proc = subprocess.Popen(cmd, shell=True)
+      
+      
+def main(argv=None):
     
-'''STEP 7: Execute the job against Swift'''
-cmd = 'bash /home/user/workspace/spark-2.1.0-bin-hadoop2.7/bin/spark-submit /home/user/Desktop/SparkJobMigratory.jar --jars /home/user/workspace/spark-2.1.0-bin-hadoop2.7/jars/stocator-1.0.9.jar'
-proc = subprocess.Popen(cmd, shell=True)
+    if argv is None:
+        argv = sys.argv 
+        
+    print argv
+    '''STEP 1: Execute the JobAnalyzer'''
+    job_analyzer = argv[1]
+    spark_job_path = argv[2]
+    spark_job_name = spark_job_path[spark_job_path.rfind('/')+1:spark_job_path.rfind('.')]
+    jsonObject = executeJavaAnalyzer(job_analyzer, spark_job_path)
+    
+    '''STEP 2: Get the lambdas and the code of the Job'''
+    lambdasToMigrate = jsonObject.get("lambdas")
+    originalJobCode = jsonObject.get("original-job-code")
+    pushdownJobCode = jsonObject.get("pushdown-job-code")
+    
+    '''STEP 3: Decide whether or not to execute the lambda pushdown'''
+    '''TODO: This will be the second phase'''
+    pushdown = True
+    jobToCompile = originalJobCode
+    
+    '''STEP 4: Set the lambdas in the storlet if necessary'''
+    if pushdown:
+        update_filter_params(lambdasToMigrate)
+        jobToCompile = pushdownJobCode
+    
+    '''STEP 5: Compile pushdown/original job'''
+    #FIXME: This should be generic for any package declaration!
+    jobToCompile = jobToCompile.replace('package test.resources.test_jobs;', 
+                'package ' + EXECUTOR_LOCATION.replace('/','.')[1:-1] + ';')    
+    jobToCompile = jobToCompile.replace(spark_job_name, "SparkJobMigratory")
+    
+    jobFile = open(EXECUTOR_LOCATION + '/SparkJobMigratory.java', 'w')
+    print >> jobFile, jobToCompile
+    
+    print "Starting compilation"
+    cmd = JAVAC_PATH + ' -cp '+ SPARK_LIBS_LOCATION + 'spark-core_2.11-2.1.0.jar:' + \
+                                SPARK_LIBS_LOCATION + 'scala-library-2.12.2.jar '
+    cmd += EXECUTOR_LOCATION + 'SparkJobMigratory.java' 
+    proc = subprocess.Popen(cmd, shell=True)
+    jobFile.close()    
+    
+    '''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
+    print "Starting packaging"
+    time.sleep(1)
+    cmd = 'jar -cfe ' + EXECUTOR_LOCATION + 'SparkJobMigratory.jar ' + \
+                       EXECUTOR_LOCATION.replace('/','.')[1:] + 'SparkJobMigratory ' + \
+                       EXECUTOR_LOCATION + 'SparkJobMigratory.class'
+    print cmd
+    proc = subprocess.Popen(cmd, shell=True)
+        
+    print "Starting execution"
+    '''STEP 7: Execute the job against Swift'''
+    cmd = 'bash ' + SPARK_FOLDER+ 'bin/spark-submit ' + \
+            EXECUTOR_LOCATION + 'SparkJobMigratory.jar --jars ' + SPARK_FOLDER + 'jars/stocator-1.0.9.jar'
+    proc = subprocess.Popen(cmd, shell=True)
+    
+    '''STEP 8: Clean files'''
+    time.sleep(1)
+    os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.java')
+    os.remove(EXECUTOR_LOCATION + 'SparkJobMigratory.class')
+    os.remove(EXECUTOR_LOCATION + spark_job_name + 'Java8Translated.java')
+    
+    
+if __name__ == "__main__":
+    sys.exit(main())     
