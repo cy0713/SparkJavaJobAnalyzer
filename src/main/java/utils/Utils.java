@@ -15,6 +15,11 @@ public class Utils {
 	//Storlet middleware treats every "," as a separation between key/value parameter pairs
 	static final String COMMA_REPLACEMENT_IN_PARAMS = "'";
 	
+	/**
+	 * This method scans a String to extract P1 and P2 from inputs like xxx<P1, P2>xxx 
+	 * @param parameters
+	 * @return
+	 */
 	public static List<String> getParametersFromSignature(String parameters) {
 		List<String> result = new ArrayList<>();
 		int openBr = 0;
@@ -31,7 +36,6 @@ public class Utils {
 		}
 		return result;	
 	}
-	
 	
 	/**
 	 * This method is intended to return to an external program a JSON String response with
