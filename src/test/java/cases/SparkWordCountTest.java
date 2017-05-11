@@ -5,12 +5,10 @@ import java.nio.file.Paths;
 import org.json.simple.JSONObject;
 
 import junit.framework.TestCase;
-import main.java.analyzer.JavaStreamsJobAnalyzer;
 import main.java.analyzer.SparkJavaJobAnalyzer;
 import main.java.utils.Utils;
-import test.java.AbstractAnalyzerTest;
 
-public class SimpleTextAnalysisSparkTest extends TestCase{	
+public class SparkWordCountTest extends TestCase{	
 	
 	protected final String TEST_PATH = Paths.get("").toAbsolutePath().toString()+
 			"/src/test/resources/";
@@ -22,7 +20,7 @@ public class SimpleTextAnalysisSparkTest extends TestCase{
         SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
         // visit and print the methods names
         JSONObject pushdownAnalysisResult = jobAnalyzer.analyze(
-        		this.TEST_PATH + "/test_jobs/SparkJavaSimpleTextAnalysis.java");
+        		this.TEST_PATH + "/test_jobs/SparkJavaWordCount.java");
         
         System.out.println("LAMBDAS TO MIGRATE FROM SPARK:");
         System.out.println(Utils.getLambdasToMigrate(pushdownAnalysisResult));

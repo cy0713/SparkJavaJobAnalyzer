@@ -3,7 +3,7 @@ package test.java.cases;
 import test.java.AbstractAnalyzerTest;
 import test.resources.test_jobs.Java8SimpleMaxCollector;
 
-public class SimpleMaxCollectorTest extends AbstractAnalyzerTest{	
+public class Java8SimpleMaxCollectorTest extends AbstractAnalyzerTest{	
 	
 	@Override
 	protected void setUp() throws Exception {

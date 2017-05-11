@@ -10,12 +10,15 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,8 +66,9 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 	//It acts as a cache of repeated lambdas to avoid compilation overhead of already compiled lambdas.
 	protected Map<String, Function> lambdaCache = new HashMap<>();
 	protected Map<String, Collector> collectorCache = new HashMap<>();
+	protected Map<String, Function> reducerCache = new HashMap<>();
 	
-	private Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap|collect)\\s*?\\(");
+	private Pattern lambdaBodyExtraction = Pattern.compile("(map|filter|flatMap|collect|reduce)\\s*?\\(");
 	//private Pattern intermediateLambdas = Pattern.compile("(map|filter|flatMap|collect|mapToPair|reduceByKey)");
 	//private Pattern terminalLambdas = Pattern.compile("(collect|count)");
 	
@@ -84,6 +88,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 		//list of functions to apply to each record
         List<Function<Stream, Stream>> pushdownFunctions = new ArrayList<>();
         Collector pushdownCollector = null;
+        Function pushdownReducer = null;
         boolean hasTerminalLambda = false;
         
         //Sort the keys in the parameter map according to the desired order
@@ -109,6 +114,10 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			if (lambdaCache.containsKey(lambdaBody)) {
 				pushdownFunctions.add(lambdaCache.get(lambdaBody));
 				continue;
+			}else if (reducerCache.containsKey(lambdaBody)){
+				pushdownReducer = reducerCache.get(lambdaBody);
+				hasTerminalLambda = true;
+				continue;
 			}else if (collectorCache.containsKey(lambdaBody)){
 				pushdownCollector = collectorCache.get(lambdaBody);
 				hasTerminalLambda = true;
@@ -119,6 +128,10 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			if (lambdaBody.startsWith("collect")){
 				pushdownCollector = getCollectorObject(lambdaBody, lambdaType);
 				collectorCache.put(lambdaBody, pushdownCollector);
+		        hasTerminalLambda = true;
+			}else if (lambdaBody.startsWith("reduce")){
+				pushdownReducer = getFunctionObject(lambdaBody, lambdaType);
+				reducerCache.put(lambdaBody, pushdownReducer);
 		        hasTerminalLambda = true;
 			} else { 
 				//Add the new compiled function to the list of functions to apply to the stream
@@ -133,10 +146,13 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
         		.reduce(c -> c, (c1, c2) -> (s -> c2.apply(c1.apply(s))));        
 
         System.out.println("Compilation time: " + (System.currentTimeMillis()-initime) + "ms");
+        Stream<Object> potentialTerminals = Arrays.asList((Object) pushdownCollector, 
+        												  (Object) pushdownReducer).stream();
         
         //Apply all the functions on each stream record
     	return hasTerminalLambda ? applyTerminalOperation((Stream) allPushdownFunctions.apply(stream), 
-    			pushdownCollector):(Stream) allPushdownFunctions.apply(stream);
+    			potentialTerminals.filter(f -> f!=null).findFirst().get()): 
+    				(Stream) allPushdownFunctions.apply(stream);
 	}	
 	
 	@Override
@@ -215,6 +231,28 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			return result.isPresent()? Stream.of(result.get()): Stream.of("");
 		}
 		return Stream.of(collectorResult);		
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private Stream applyTerminalOperation(Stream functionsOnStream, Function terminalOperation) {	
+		//Executing a terminal operation forces us to consume the stream, which may be bad for performance
+		try {
+			return Stream.of(((Optional) terminalOperation.apply(functionsOnStream)).get());
+		} catch (NoSuchElementException e) {
+			System.err.println("Terminal operation without result in Optional value.");
+			e.printStackTrace();
+		}
+		//Temporal default value
+		return Stream.of("");		
+	}
+	@SuppressWarnings("rawtypes")
+	private Stream applyTerminalOperation(Stream functionsOnStream, Object terminalOperation) {
+		if (terminalOperation instanceof Function) 
+			return applyTerminalOperation(functionsOnStream, (Function) terminalOperation);
+		if (terminalOperation instanceof Collector)
+			return applyTerminalOperation(functionsOnStream, (Collector) terminalOperation);
+		//Temporal default value
+		return Stream.of("");
 	}
 
 	private void writeByteBasedStreams(InputStream is, OutputStream os, StorletLogger logger) {

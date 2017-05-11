@@ -33,7 +33,6 @@ public class FlowControlGraph implements Iterable<GraphNode>{
 	 */
 	public void appendOperationToRDD(String operation, String functionType, boolean terminal){
 		GraphNode toAdd = new GraphNode();
-		//toAdd.setPushable(pushable);
 		toAdd.setTerminal(terminal);
 		toAdd.setLambdaSignature(operation);
 		toAdd.setFunctionType(functionType);

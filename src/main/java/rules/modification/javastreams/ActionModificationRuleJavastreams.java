@@ -24,7 +24,7 @@ public class ActionModificationRuleJavastreams implements LambdaRule{
 		//This serves for simple times, like Integer or Long
 		if (!lastParameter.contains(",") && !lastParameter.contains("<"))
 			return "new " + lastParameter + "(s)";
-		//At the moment, only consider simple type parameters like Integer, String or Long
+		//At the moment, only consider simple tuple type parameters like Integer, String or Long
 		if (lastParameter.startsWith("java.util.AbstractMap.SimpleEntry")){
 			List<String> params = Utils.getParametersFromSignature(
 					lastParameter.replace("java.util.AbstractMap.SimpleEntry<", "").replace(">", ""));
@@ -38,7 +38,9 @@ public class ActionModificationRuleJavastreams implements LambdaRule{
 			System.err.println(result);
 			return result.substring(0, result.length()-2) + ")";
 		}
-		System.err.println("PROBLEM DOING CONVERSION IN: " + this.getClass().getName());
+		System.err.println("Problem performing the map to convert the pushded down type"
+				+ "into a type necessary for the remaining lambdas in the modified job: " 
+						+ this.getClass().getName());
 		return "";
 	}
 }

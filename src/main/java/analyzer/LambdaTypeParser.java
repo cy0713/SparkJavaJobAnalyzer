@@ -24,7 +24,7 @@ public class LambdaTypeParser {
 	
 	private List<String> arguments = new ArrayList<>();
 	
-	Pattern functionBasedLambdas = Pattern.compile("(map|flatMap)");
+	Pattern functionBasedLambdas = Pattern.compile("(map|filter|flatMap|reduce)");
 
 	private static final int FIRST_ARGUMENT = 0;
 	private static final int SECOND_ARGUMENT = 1;

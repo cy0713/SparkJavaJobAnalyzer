@@ -2,6 +2,7 @@ package test.java.storlet;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -14,6 +15,7 @@ public class SupportedLambdaTypes {
 	private static Map<String, TypeReference> supportedMapTypes = new HashMap<>();
 	private static Map<String, TypeReference> supportedFilterTypes = new HashMap<>();
 	private static Map<String, TypeReference> supportedFlatMapTypes = new HashMap<>();
+	private static Map<String, TypeReference> supportedReduceTypes = new HashMap<>();
 	
 	static {
 		supportedMapTypes.put("java.util.function.Function<java.lang.String, java.lang.String>", 
@@ -36,10 +38,16 @@ public class SupportedLambdaTypes {
 		
 		supportedFlatMapTypes.put("java.util.function.Function<java.lang.String, java.util.stream.Stream<java.lang.String>>", 
 				new TypeReference<Function<String, Stream<String>>>(){});	
+		
+		supportedReduceTypes.put("java.util.function.BinaryOperator<java.lang.Integer>", 
+				new TypeReference<BinaryOperator<Integer>>(){});
+		supportedReduceTypes.put("java.util.function.BinaryOperator<java.lang.Long>", 
+				new TypeReference<BinaryOperator<Long>>(){});
 	}
 	
 	public static TypeReference getMapType(String mapType){return supportedMapTypes.get(mapType);}
 	public static TypeReference getFilterType(String filterType){return supportedFilterTypes.get(filterType);}
 	public static TypeReference getFlatMapType(String flatMapType){return supportedFlatMapTypes.get(flatMapType);}
+	public static TypeReference getReduceType(String reduceType){return supportedReduceTypes.get(reduceType);}
 
 }

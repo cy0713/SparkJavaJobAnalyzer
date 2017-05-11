@@ -14,7 +14,7 @@ import test.java.cases.TestTask;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-//TODO: THis import shouldnt be here, it should be added to the modified job code
+//FIXME: This import should not be here, it should be added to the modified job code
 import static java.util.stream.Collectors.summingLong;
 
 public class Java8WordCount implements TestTask{

@@ -3,7 +3,7 @@ package test.java.cases;
 import test.java.AbstractAnalyzerTest;
 import test.resources.test_jobs.Java8WordCount;
 
-public class WordCountJava8StreamsTest extends AbstractAnalyzerTest{	
+public class Java8WordCountStreamsTest extends AbstractAnalyzerTest{	
 	
 	@Override
 	protected void setUp() throws Exception {

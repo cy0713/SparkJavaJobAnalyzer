@@ -3,22 +3,22 @@ package test.java;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import test.java.cases.SimpleListCollectorTest;
-import test.java.cases.SimpleLogAnalyzer2Test;
-import test.java.cases.SimpleLogAnalyzer3Test;
-import test.java.cases.SimpleLogAnalyzerTest;
-import test.java.cases.SimpleMaxCollectorTest;
-import test.java.cases.StreamVariableAssignmentTest;
-import test.java.cases.WordCountJava8StreamsTest;
+import test.java.cases.Java8SimpleListCollectorTest;
+import test.java.cases.Java8SimpleLogAnalyzer2Test;
+import test.java.cases.Java8SimpleLogAnalyzer3Test;
+import test.java.cases.Java8SimpleLogAnalyzerTest;
+import test.java.cases.Java8SimpleMaxCollectorTest;
+import test.java.cases.Java8StreamVariableAssignmentsTest;
+import test.java.cases.Java8WordCountStreamsTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        SimpleLogAnalyzerTest.class,
-        SimpleLogAnalyzer2Test.class,
-        SimpleLogAnalyzer3Test.class,
-        WordCountJava8StreamsTest.class,
-        SimpleListCollectorTest.class,
-        SimpleMaxCollectorTest.class,
-        StreamVariableAssignmentTest.class
+        Java8SimpleLogAnalyzerTest.class,
+        Java8SimpleLogAnalyzer2Test.class,
+        Java8SimpleLogAnalyzer3Test.class,
+        Java8WordCountStreamsTest.class,
+        Java8SimpleListCollectorTest.class,
+        Java8SimpleMaxCollectorTest.class,
+        Java8StreamVariableAssignmentsTest.class
 })
 public class JavaStreamsJobAnalyzerTestSuite {}

@@ -100,7 +100,10 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	        try {
 	        	matcher.find();
 		        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-		        identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
+		        //We are treating reduce operations as final operations, but we need to know the types of inner lambdas
+		        if (matchedLambda.startsWith("reduce")){
+		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
+		        } else identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
 		        lastLambdaIndex = matcher.end();
 	        }catch(IllegalStateException e) {
 	        	System.err.println("Error parsing the lambda. Probably you need to add how to "
@@ -111,7 +114,7 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		if (lastLambdaIndex==0) lastLambdaIndex=expressionString.indexOf(".");
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
 		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
-		//There is only a single terminal operation in the expression
+		//We enable only a single collector in the expression, if it does exist
 		if (matcher.find()){
 			int pos = lastLambdaIndex+matcher.end()+1;
 			int openBr = 1;
