@@ -10,7 +10,7 @@ import main.java.analyzer.SparkJavaJobAnalyzer;
 import main.java.utils.Utils;
 import test.java.AbstractAnalyzerTest;
 
-public class Java8SimpleTextAnalysisSparkTest extends TestCase{	
+public class SparkSimpleTextAnalysisTest extends TestCase{	
 	
 	protected final String TEST_PATH = Paths.get("").toAbsolutePath().toString()+
 			"/src/test/resources/";
