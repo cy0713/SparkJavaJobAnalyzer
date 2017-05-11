@@ -11,7 +11,7 @@ public class ReduceByKey implements LambdaRule {
 		StringBuilder replacement = new StringBuilder("collect");
 		
 		//The collector should group by key
-		replacement.append("(Collectors.groupingBy(SimpleEntry");
+		replacement.append("(Collectors.groupingBy(");
 		String tupleType = null;
 		GraphNode toExplore = graphNode;
 		while (toExplore.getPreviousNode()!=null){
@@ -26,7 +26,7 @@ public class ReduceByKey implements LambdaRule {
 		if (tupleType == null) 
 			System.err.println("WARNING: UNKOWN COLLECTOR FOR TRANSLATION: " + graphNode.getLambdaSignature());
 		
-		replacement.append("::getKey, ");
+		replacement.append(tupleType + "::getKey, ");
 		//Infer the correct built-in collector from the specified function
 		String collector = null;
 		String reduceFunction = graphNode.getLambdaSignature()
