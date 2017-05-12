@@ -87,33 +87,28 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		Collections.reverse(lambdas);
 		
 		//Get the entire intermediate lambda functions that can be pushed down
-		int lastLambdaIndex = 0;
+		int lastLambdaIndex = expressionString.indexOf(".");
 		for (Node n: lambdas){    		
 			System.out.println("Processing transformation: " + n);				
 			Pattern pattern = Pattern.compile("\\." + pushableTransformations + 
 								"+\\(?\\S+" + Pattern.quote(n.toString()) + "\\)");
 	        Matcher matcher = pattern.matcher(expressionString);
 	        //Add these lambda calls to the list of calls for the particular stream
-	        try {
-	        	matcher.find();
-		        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
-		        Matcher terminalMatcher = Pattern.compile(pushableActions).matcher(matchedLambda);
-		        if (terminalMatcher.lookingAt()) break;
-				//Take advantage of this pass to try to infer the types of the lambdas
-				//Anyway, this will require a further process later on	
-				String lambdaType = getLambdaTypeFromNode(n);		
-		        //We are treating reduce operations as final operations, but we need to know the types of inner lambdas
-		        if (matchedLambda.startsWith("reduce")){
-		        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
-		        } else identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
-		        lastLambdaIndex = matcher.end();
-	        }catch(IllegalStateException e) {
-	        	System.err.println("Error parsing the lambda. Probably you need to add how to "
-	        			+ "treat the following function in this code: " + expressionString);
-	        	e.printStackTrace();
-	        }
+        	if (!matcher.find()) {
+        		System.err.println("Finished parsing lambdas when found: " + n);
+        		break;
+        	}
+	        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
+			//Take advantage of this pass to try to infer the types of the lambdas
+			//Anyway, this will require a further process later on	
+			String lambdaType = getLambdaTypeFromNode(n);		
+	        //We are treating reduce operations as final operations, but we need to know the types of inner lambdas
+	        if (matchedLambda.startsWith("reduce")){
+	        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
+	        } else identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
+	        lastLambdaIndex = matcher.end();
 		}			
-		if (lastLambdaIndex==0) lastLambdaIndex=expressionString.indexOf(".");
+
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
 		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
 		//We enable only a single collector in the expression, if it does exist
