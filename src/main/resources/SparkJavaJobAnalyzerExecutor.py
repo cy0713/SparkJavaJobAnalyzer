@@ -13,6 +13,7 @@ import subprocess
 import time
 import sys
 import os
+import re
 
 
 URL_CRYSTAL_API = 'http://10.30.230.217:8000/'
@@ -21,9 +22,9 @@ USERNAME='admin'
 PASSWORD='admin'
 TENANT='crystaltest'
 EXECUTOR_LOCATION = '/home/user/Desktop/'
-SPARK_LIBS_LOCATION = '/home/user/Desktop/'
 JAVAC_PATH = '/usr/bin/javac'
 SPARK_FOLDER = '/home/user/workspace/spark-2.1.0-bin-hadoop2.7/'
+SPARK_LIBS_LOCATION = SPARK_FOLDER + '/jars/'
 
 valid_token = None
 
@@ -112,17 +113,18 @@ def main(argv=None):
     
     '''STEP 3: Decide whether or not to execute the lambda pushdown'''
     '''TODO: This will be the second phase'''
-    pushdown = True
+    pushdown = False
     jobToCompile = originalJobCode
     
     '''STEP 4: Set the lambdas in the storlet if necessary'''
     if pushdown:
         update_filter_params(lambdasToMigrate)
         jobToCompile = pushdownJobCode
+    else: update_filter_params([])
     
     '''STEP 5: Compile pushdown/original job'''
-    #FIXME: This should be generic for any package declaration!
-    jobToCompile = jobToCompile.replace('package test.resources.test_jobs;', 
+    m = re.search('package\s*(\w\.?)*\s*;', jobToCompile)
+    jobToCompile = jobToCompile.replace(m.group(0), 
                 'package ' + EXECUTOR_LOCATION.replace('/','.')[1:-1] + ';')    
     jobToCompile = jobToCompile.replace(spark_job_name, "SparkJobMigratory")
     
