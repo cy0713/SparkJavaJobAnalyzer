@@ -10,13 +10,16 @@ public class ActionModificationRuleSpark implements LambdaRule{
 	
 	@Override
 	public void applyRule(GraphNode graphNode) {
-		//TODO: ADAPT THIS TO THE NEEDS OF SPARK JOBS
 		//We need a map for the last type prior to the collector/action
 		List<String> nodeParams = graphNode.getPreviousNode().getTypeParametersAsList();
 		if (!nodeParams.get(nodeParams.size()-1).equals("java.lang.String")){
 			String lastParameter = nodeParams.get(nodeParams.size()-1);
-			graphNode.setCodeReplacement("map(s -> " + instantiationSignature(lastParameter.trim()) + ")."
-					+ graphNode.getLambdaSignature());
+			String conversionFunction = "map";
+			if (graphNode.getMyRDD().getType().startsWith("JavaPairRDD")) 
+				conversionFunction = "mapToPair";
+			graphNode.setCodeReplacement(conversionFunction + 
+					"(s -> " + instantiationSignature(lastParameter.trim()) + ")."
+						+ graphNode.getLambdaSignature());
 		} else graphNode.setCodeReplacement(graphNode.getLambdaSignature());
 	}
 
@@ -39,7 +42,9 @@ public class ActionModificationRuleSpark implements LambdaRule{
 			System.err.println(result);
 			return result.substring(0, result.length()-2) + ")";
 		}
-		System.err.println("PROBLEM DOING CONVERSION IN: " + this.getClass().getName());
+		System.err.println("Problem performing the map to convert the pushded down type"
+				+ "into a type necessary for the remaining lambdas in the modified job: " 
+					+ this.getClass().getName());
 		return "";
 	}
 }

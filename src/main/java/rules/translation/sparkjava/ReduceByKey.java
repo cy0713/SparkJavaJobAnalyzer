@@ -24,7 +24,8 @@ public class ReduceByKey implements LambdaRule {
 			toExplore = toExplore.getPreviousNode();
 		}
 		if (tupleType == null) 
-			System.err.println("WARNING: UNKOWN COLLECTOR FOR TRANSLATION: " + graphNode.getLambdaSignature());
+			System.err.println("ERROR: Unknown collector for translation in ReduceByKey: " 
+						+ graphNode.getLambdaSignature());
 		
 		replacement.append(tupleType + "::getKey, ");
 		//Infer the correct built-in collector from the specified function
@@ -37,7 +38,7 @@ public class ReduceByKey implements LambdaRule {
 			collector = "Collectors.counting()";
 		
 		if (collector == null) 
-			System.err.println("WARNING: UNKOWN COLLECTOR FOR TRANSLATION: " + reduceFunction);
+			System.err.println("ERROR: Unknown collector for translation in ReduceByKey: " + reduceFunction);
 		
 		replacement.append(collector + "))");
 		graphNode.setCodeReplacement(replacement.toString());

@@ -13,13 +13,18 @@ public class MapToPair implements LambdaRule {
 				graphNode.getLambdaSignature().indexOf("new "),
 				graphNode.getLambdaSignature().lastIndexOf(">")+2);		
 		int index = 0;
-		for (String p: Utils.getParametersFromSignature(result.substring(0, result.length()-2).replace("new Tuple2<", ""))){
+		String variableName = graphNode.getLambdaSignature().substring(
+				graphNode.getLambdaSignature().indexOf("("),
+				graphNode.getLambdaSignature().lastIndexOf("->"));
+		variableName = variableName.replace(" ", "");
+		String paramsSequence = result.substring(0, result.length()-2).replace("new Tuple2<", "");
+		for (String p: Utils.getParametersFromSignature(paramsSequence)){
 			if (p.equals("java.lang.String") || p.equals("String")) 
-				result += "word.split(\"=\")[" + index +"],";
-			else result += p + ".valueOf(word.split(\"=\")[" + index +"]), ";
+				result += variableName+".split(\"=\")[" + index +"],";
+			else result += p + ".valueOf(" + variableName + ".split(\"=\")[" + index +"]), ";
 			index++;
-		}
-		System.err.println(result);		
-		graphNode.setCodeReplacement("mapToPair(word -> " + result.substring(0, result.length()-2) + "))");
+		}		
+		graphNode.setCodeReplacement("mapToPair(" + variableName+ " -> " + 
+					result.substring(0, result.length()-2) + "))");
 	}
 }
