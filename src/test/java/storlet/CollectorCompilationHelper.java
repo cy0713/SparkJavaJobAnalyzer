@@ -23,7 +23,7 @@ public class CollectorCompilationHelper {
 				 			"import java.util.stream.Collector; \n" +
 				 			"import java.util.AbstractMap.SimpleEntry; \n" +
 				 			"import java.util.Map; \n" +
-				 			"import test.java.storlet.IGetCollector; \n" +
+				 			"import " + COMPILED_JOB_PATH + ".IGetCollector; \n" +
 				 			
 		                    "public class " + className + " implements IGetCollector {\n" +
 		                    "    public " + collectorType +" getCollector() {\n" +

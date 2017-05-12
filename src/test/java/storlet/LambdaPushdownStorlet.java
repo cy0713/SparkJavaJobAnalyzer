@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -203,6 +202,7 @@ public class LambdaPushdownStorlet extends LambdaStreamsStorlet {
 			writeBuffer.close();
 			is.close();
 			os.close();
+			System.err.println(">>>>>>>>>>> Finishing writing with lambdas!!");
 		} catch (IOException e1) {
 			logger.emitLog(this.getClass().getName() + " raised IOException 2: " + e1.getMessage());
 			e1.printStackTrace(System.err);

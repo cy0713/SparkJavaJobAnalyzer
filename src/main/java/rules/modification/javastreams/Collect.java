@@ -17,6 +17,7 @@ public class Collect extends ActionModificationRuleJavastreams {
 
 	@Override
 	public void applyRule(GraphNode graphNode) {
+
 		//Add map to adapt the proper type
 		super.applyRule(graphNode);
 		
@@ -50,7 +51,7 @@ public class Collect extends ActionModificationRuleJavastreams {
 			found = coutingMatcher.find();
 		}
 		if (!found) return;
-		String summingCollector = "summing";
+		String summingCollector = "java.util.stream.Collectors.summing";
 		//All this stuff is to find the types of Tuples in a more or less general way
 		int initIndexTupleTypes = graphNode.getLambdaSignature()
 				.indexOf("SimpleEntry<") + "SimpleEntry<".length();
