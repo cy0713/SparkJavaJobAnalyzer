@@ -7,15 +7,12 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import test.java.cases.TestTask;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-//FIXME: This import should not be here, it should be added to the modified job code
-import static java.util.stream.Collectors.summingLong;
 
 public class Java8WordCount implements TestTask{
 	
