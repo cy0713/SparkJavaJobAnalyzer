@@ -9,23 +9,17 @@ import scala.Tuple2;
 
 import java.util.Arrays;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class SparkJavaWordCount2 {
+	
   private static final Logger LOGGER = LoggerFactory.getLogger(SparkJavaWordCount2.class);
 
   public static void main(String[] args) {
-    checkArgument(args.length > 1, "Please provide the path of input file as first parameter.");
-    new SparkJavaWordCount2().run(args[1]);
-  }
-
-  public void run(String inputFile) {
     String master = "local[*]";
 
     SparkConf conf = new SparkConf().setAppName(SparkJavaWordCount2.class.getName()).setMaster(master);
     JavaSparkContext context = new JavaSparkContext(conf);
 
-    JavaRDD<String> textFile = context.textFile(inputFile);
+    JavaRDD<String> textFile = context.textFile("swift2d://data1.lvm/hamlet.txt");
     
     textFile.flatMap(s -> Arrays.asList(s.split(" ")).iterator())
         	.mapToPair(word -> new Tuple2<String, Integer>(word, 1))

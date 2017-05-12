@@ -47,7 +47,7 @@ def update_filter_params(lambdasToMigrate):
     headers = {}
     
     #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:30"
+    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:31"
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
 
@@ -128,13 +128,14 @@ def main(argv=None):
     
     jobFile = open(EXECUTOR_LOCATION + '/SparkJobMigratory.java', 'w')
     print >> jobFile, jobToCompile
+    jobFile.close() 
     
     print "Starting compilation"
-    cmd = JAVAC_PATH + ' -cp '+ SPARK_LIBS_LOCATION + 'spark-core_2.11-2.1.0.jar:' + \
-                                SPARK_LIBS_LOCATION + 'scala-library-2.12.2.jar '
+    cmd = JAVAC_PATH + ' -cp \"'+ SPARK_LIBS_LOCATION + '*\" '
     cmd += EXECUTOR_LOCATION + 'SparkJobMigratory.java' 
     proc = subprocess.Popen(cmd, shell=True)
-    jobFile.close()    
+    print cmd
+       
     
     '''STEP 6: Package the Spark Job class as a JAR and set the manifest'''
     print "Starting packaging"
@@ -148,7 +149,8 @@ def main(argv=None):
     print "Starting execution"
     '''STEP 7: Execute the job against Swift'''
     cmd = 'bash ' + SPARK_FOLDER+ 'bin/spark-submit ' + \
-            EXECUTOR_LOCATION + 'SparkJobMigratory.jar --jars ' + SPARK_FOLDER + 'jars/stocator-1.0.9.jar'
+            EXECUTOR_LOCATION + 'SparkJobMigratory.jar --jars ' \
+                + SPARK_FOLDER + 'jars/*.jar'
     proc = subprocess.Popen(cmd, shell=True)
     
     '''STEP 8: Clean files'''
