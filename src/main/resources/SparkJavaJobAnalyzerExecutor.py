@@ -47,7 +47,7 @@ def update_filter_params(lambdasToMigrate):
     headers = {}
     
     #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:29"
+    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:30"
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
 

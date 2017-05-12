@@ -14,7 +14,7 @@ public class MapToPair implements LambdaRule {
 				graphNode.getLambdaSignature().lastIndexOf(">")+2);		
 		int index = 0;
 		String variableName = graphNode.getLambdaSignature().substring(
-				graphNode.getLambdaSignature().indexOf("("),
+				graphNode.getLambdaSignature().indexOf("(")+1,
 				graphNode.getLambdaSignature().lastIndexOf("->"));
 		variableName = variableName.replace(" ", "");
 		String paramsSequence = result.substring(0, result.length()-2).replace("new Tuple2<", "");
