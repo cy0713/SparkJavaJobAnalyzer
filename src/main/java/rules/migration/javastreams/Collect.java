@@ -16,7 +16,7 @@ public class Collect implements LambdaRule {
 			if (cleanSignature.contains(method.getName()) &&
 					!cleanSignature.contains("Collectors."+method.getName())){
 				cleanSignature = cleanSignature.replace(method.getName(), 
-						"Collectors."+method.getName());
+						"java.util.stream.Collectors."+method.getName());
 			}
 		}
 		graphNode.setToPushdown(cleanSignature);

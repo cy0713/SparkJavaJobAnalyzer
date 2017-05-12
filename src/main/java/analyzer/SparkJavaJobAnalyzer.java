@@ -28,8 +28,8 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey)";
-	protected final String pushableActions = "(collect|count|iterator|reduce)";
+	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce)";
+	protected final String pushableActions = "(collect|count|iterator|foreach)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
 	protected final String reverseRulesPackage = "main.java.rules.reverse." + jobType  + ".";

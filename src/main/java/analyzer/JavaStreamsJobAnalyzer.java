@@ -52,7 +52,7 @@ public class JavaStreamsJobAnalyzer {
 	
 	/* These are the operation that we currently can detect/migrate */
 	protected final static String pushableTransformations = "(map|filter|flatMap|reduce)";
-	protected final static String pushableActions = "(collect|count|iterator)";	
+	protected final static String pushableActions = "(collect|count|iterator|forEach)";	
 	
 	protected final String migrationRulesPackage = "main.java.rules.migration." + jobType + ".";
 	protected final String modificationRulesPackage = "main.java.rules.modification." + jobType  + ".";

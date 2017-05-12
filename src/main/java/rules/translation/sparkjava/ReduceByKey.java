@@ -11,7 +11,7 @@ public class ReduceByKey implements LambdaRule {
 		StringBuilder replacement = new StringBuilder("collect");
 		
 		//The collector should group by key
-		replacement.append("(Collectors.groupingBy(");
+		replacement.append("(java.util.stream.Collectors.groupingBy(");
 		String tupleType = null;
 		GraphNode toExplore = graphNode;
 		while (toExplore.getPreviousNode()!=null){
@@ -35,7 +35,7 @@ public class ReduceByKey implements LambdaRule {
 		
 		//TODO: Add more collectors for other reduce functions
 		if (reduceFunction.matches("->\\s*\\(?.\\s*\\+.\\s*.\\s*\\)?"))
-			collector = "Collectors.counting()";
+			collector = "java.util.stream.Collectors.counting()";
 		
 		if (collector == null) 
 			System.err.println("ERROR: Unknown collector for translation in ReduceByKey: " + reduceFunction);
