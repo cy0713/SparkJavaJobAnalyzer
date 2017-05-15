@@ -14,7 +14,7 @@ public class ReduceByKey implements LambdaRule {
 		replacement.append("(java.util.stream.Collectors.groupingBy(");
 		String tupleType = null;
 		GraphNode toExplore = graphNode;
-		while (toExplore.getPreviousNode()!=null){
+		while (toExplore!=null){
 			//FIXME: Do this with regex
 			if (toExplore.getCodeReplacement().contains("new SimpleEntry")){
 				tupleType = toExplore.getCodeReplacement().substring(
@@ -23,6 +23,7 @@ public class ReduceByKey implements LambdaRule {
 			}
 			toExplore = toExplore.getPreviousNode();
 		}
+		//TODO: If the type is implicit, then look for the type of the RDD
 		if (tupleType == null) 
 			System.err.println("ERROR: Unknown collector for translation in ReduceByKey: " 
 						+ graphNode.getLambdaSignature());
@@ -34,7 +35,7 @@ public class ReduceByKey implements LambdaRule {
 										 .substring(graphNode.getLambdaSignature().indexOf("->"));
 		
 		//TODO: Add more collectors for other reduce functions
-		if (reduceFunction.matches("->\\s*\\(?.\\s*\\+.\\s*.\\s*\\)?"))
+		if (reduceFunction.matches("->\\s*\\(?\\w*\\s*\\+\\s*\\w*\\s*\\)?"))
 			collector = "java.util.stream.Collectors.counting()";
 		
 		if (collector == null) 
@@ -43,5 +44,4 @@ public class ReduceByKey implements LambdaRule {
 		replacement.append(collector + "))");
 		graphNode.setCodeReplacement(replacement.toString());
 	}
-
 }

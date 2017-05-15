@@ -15,7 +15,7 @@ public class RDDTranslator implements SparkDatasetTranslation{
 		String newDataseType = datasetType.replace(mainType, streamType);
 		//There is no equivalent of JavaPairRDD in Streams. We assume that a JavaPairRDD
 		//comes after a mapToPair or map function and it represents a Map of tupes in Java8
-		if (mainType.equals("JavaPairRDD")){
+		if (mainType.equals("JavaPairRDD") || mainType.equals("JavaPairDStream")){
 			newDataseType = newDataseType.replace("Stream<", "Map<");
 			jobCode = jobCode.replaceFirst("java.util.stream.Stream;", 
 					  "java.util.stream.Stream;\nimport java.util.Map;\n"

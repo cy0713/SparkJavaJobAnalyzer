@@ -25,7 +25,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 
 	protected final String jobType = "sparkjava";
 
-	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD|DStream)"
+	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD|DStream|JavaDStream|JavaPairDStream)"
 			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
 	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce)";
