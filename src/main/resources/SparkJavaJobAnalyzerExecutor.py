@@ -25,6 +25,7 @@ EXECUTOR_LOCATION = '/home/user/Desktop/'
 JAVAC_PATH = '/usr/bin/javac'
 SPARK_FOLDER = '/home/user/workspace/spark-2.1.0-bin-hadoop2.7/'
 SPARK_LIBS_LOCATION = SPARK_FOLDER + '/jars/'
+LAMBDA_PUSHDOWN_FILTER = 'lambdapushdown-1.0.jar'
 
 valid_token = None
 
@@ -47,10 +48,30 @@ def update_filter_params(lambdasToMigrate):
     token = get_or_update_token()
     headers = {}
     
-    #TODO: How to get the appropriate policy id to modify?
-    policy_id = "366756dbfd024e0aa7f204a7498dfcfa:data1:31"
+    url = URL_CRYSTAL_API + "controller/static_policy/"
+    
+    headers["X-Auth-Token"] = str(token)
+    headers['Content-Type'] = "application/json"
+    
+    r = requests.get(str(url), {}, headers=headers)
+    json_data = json.loads(r.content)
+    
+    print r, json_data
+    
+    policy_id = None
+    
+    '''We assume that a single tenant/container only has one pushdown filter'''
+    for policy in json_data:
+        if policy['filter_name'] == LAMBDA_PUSHDOWN_FILTER:
+            policy_id = policy['target_id'] + ':' + policy['id'] 
+        
+    if policy_id==None:
+        print "ERROR: No lambda filter found for " + policy['target_id']
+        return None
+    
 
     url = URL_CRYSTAL_API + "controller/static_policy/" + str(policy_id)
+    print 'Update filter URL: ' + url
 
     headers["X-Auth-Token"] = str(token)
     headers['Content-Type'] = "application/json"
@@ -61,9 +82,9 @@ def update_filter_params(lambdasToMigrate):
         lambdas_as_string+= str(index) + "-lambda=" + str(x['lambda-type-and-body']) + ","
         index+=1
 
-    print lambdas_as_string
     r = requests.put(str(url), json.dumps({'params': lambdas_as_string[:-1]}), headers=headers)
-    print r.status_code
+    
+    return r.status_code
     
     
 def get_keystone_admin_auth():
@@ -89,7 +110,7 @@ def get_or_update_token():
     if valid_token == None:
         keystone = get_keystone_admin_auth()
         valid_token = keystone.auth_token
-        print "AUTH TOKEN: ", valid_token
+        print "Auth token to be used: ", valid_token
         
     return valid_token  
       
@@ -113,14 +134,15 @@ def main(argv=None):
     
     '''STEP 3: Decide whether or not to execute the lambda pushdown'''
     '''TODO: This will be the second phase'''
-    pushdown = False
+    pushdown = True
     jobToCompile = originalJobCode
     
     '''STEP 4: Set the lambdas in the storlet if necessary'''
     if pushdown:
-        update_filter_params(lambdasToMigrate)
+        #TODO: Maybe we have to handle error codes and do something
+        print 'Response code of filter update: ' + str(update_filter_params(lambdasToMigrate))
         jobToCompile = pushdownJobCode
-    else: update_filter_params([])
+    else: print 'Response code of filter update: ' + str(update_filter_params([]))
     
     '''STEP 5: Compile pushdown/original job'''
     m = re.search('package\s*(\w\.?)*\s*;', jobToCompile)
