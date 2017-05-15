@@ -9,6 +9,7 @@ import test.java.cases.Java8SimpleLogAnalyzer3Test;
 import test.java.cases.Java8SimpleLogAnalyzerTest;
 import test.java.cases.Java8SimpleMaxCollectorTest;
 import test.java.cases.Java8SimpleReduceTest;
+import test.java.cases.Java8SimpleReduceWithMathUseTest;
 import test.java.cases.Java8StreamVariableAssignmentsTest;
 import test.java.cases.Java8WordCountStreamsTest;
 
@@ -20,6 +21,7 @@ import test.java.cases.Java8WordCountStreamsTest;
         Java8SimpleLogAnalyzerTest.class,
         Java8SimpleMaxCollectorTest.class,
         Java8SimpleReduceTest.class,
+        Java8SimpleReduceWithMathUseTest.class,
         Java8StreamVariableAssignmentsTest.class,
         Java8WordCountStreamsTest.class
 })

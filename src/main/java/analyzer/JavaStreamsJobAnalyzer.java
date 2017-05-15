@@ -101,7 +101,6 @@ public class JavaStreamsJobAnalyzer {
         //lambdas that can be successfully executed at the storage side     
         identifiedStreams = new SafeLambdaMigrationFinder().computeMigrationGraph(identifiedStreams);
         
-        System.out.println(">>>>>>>>>" + migrationRulesPackage);
         //Here, we need the intelligence to know what to pushdown   
         for (String key: identifiedStreams.keySet()){
         	applyRulesToControlFlowGraph(identifiedStreams.get(key), migrationRulesPackage);
@@ -141,7 +140,6 @@ public class JavaStreamsJobAnalyzer {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
         
-        //TODO: Here we assume that any necessary type to be resolved for the file is within the parent dir
         String sourceCodeDirToAnalyze = new File(fileToAnalyze).getParentFile().getAbsolutePath();
         if (DEBUG) sourceCodeDirToAnalyze = defaultSrcToAnalyze;
         combinedTypeSolver.add(new JavaParserTypeSolver(new File(sourceCodeDirToAnalyze)));

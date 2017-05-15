@@ -14,6 +14,10 @@ public class ActionModificationRuleJavastreams implements LambdaRule{
 		List<String> nodeParams = graphNode.getPreviousNode().getTypeParametersAsList();
 		if (!nodeParams.get(nodeParams.size()-1).equals("java.lang.String")){
 			String lastParameter = nodeParams.get(nodeParams.size()-1);
+			//GraphNode typeConversionMap = new GraphNode();
+			//typeConversionMap
+			//GraphNode previousNode = graphNode.getNextNode();			
+			//if (previousNode==null)
 			graphNode.setCodeReplacement("map(s -> " + instantiationSignature(lastParameter.trim()) + ")."
 					+ graphNode.getLambdaSignature());
 		} else graphNode.setCodeReplacement(graphNode.getLambdaSignature());

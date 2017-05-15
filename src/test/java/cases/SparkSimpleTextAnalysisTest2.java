@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 import main.java.analyzer.SparkJavaJobAnalyzer;
 import main.java.utils.Utils;
 
-public class SparkSimpleTextAnalysisTest extends TestCase{	
+public class SparkSimpleTextAnalysisTest2 extends TestCase{	
 	
 	protected final String TEST_PATH = Paths.get("").toAbsolutePath().toString()+
 			"/src/test/resources/";
@@ -20,7 +20,7 @@ public class SparkSimpleTextAnalysisTest extends TestCase{
         SparkJavaJobAnalyzer jobAnalyzer = new SparkJavaJobAnalyzer();        
         // visit and print the methods names
         JSONObject pushdownAnalysisResult = jobAnalyzer.analyze(
-        		this.TEST_PATH + "/test_jobs/SparkJavaSimpleTextAnalysis.java");
+        		this.TEST_PATH + "/test_jobs/SparkJavaSimpleTextAnalysis2.java");
         
         System.out.println("LAMBDAS TO MIGRATE FROM SPARK:");
         System.out.println(Utils.getLambdasToMigrate(pushdownAnalysisResult));

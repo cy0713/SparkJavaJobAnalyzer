@@ -91,12 +91,15 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 			e.printStackTrace();
 		}
         System.out.println(translatedJobCode);
+        
         //Execute the JavaStreams analyzer on the translated job
         JavaStreamsJobAnalyzer javaStreamsAnalyzer = new JavaStreamsJobAnalyzer();
         JSONObject result = javaStreamsAnalyzer.analyze(translatedJobPath);
         //The lambdas to migrate should be Java8 Stream lambdas, as they will be executed by the Storlet
         List<SimpleEntry<String, String>> lambdasToMigrate = Utils.getLambdasToMigrate(result);
         String modifiedJobCode =  originalJobCode;
+        
+        System.out.println(Utils.getModifiedJobCode(result));
         
         LambdaRule pushdownLambdaRule = null;
         for (String rddName: identifiedStreams.keySet()){
@@ -110,6 +113,8 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 							pushdownLambdaRule = (LambdaRule) Class.forName(
 									reverseRulesPackage + new String(functionName.substring(0, 1)).toUpperCase() +
 									functionName.substring(1, functionName.length())).newInstance();
+							//We do not infer Spark types, so we use the Java8 types inferred as hints
+							node.setFunctionType(theLambda.getValue());
 							//Get whether the current lambda can be pushed down or not
 							pushdownLambdaRule.applyRule(node);
 							String codeReplacement = "";
