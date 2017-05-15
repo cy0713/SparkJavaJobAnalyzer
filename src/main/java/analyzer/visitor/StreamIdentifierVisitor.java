@@ -34,7 +34,7 @@ public class StreamIdentifierVisitor extends ModifierVisitor<Void> {
 		//does not work with an anonymous declaration like createStream().stream().lambdas...
 		Matcher matcher = datasetsPattern.matcher(declarator.getType().toString());
 		//Check if we found and in memory data structure like an RDD
-     	if (matcher.find()){
+     	if (matcher.matches()){
      		String streamVariable = declarator.getChildNodes().get(0).toString();
      		FlowControlGraph graph = new FlowControlGraph(streamVariable);
      		graph.setType(declarator.getType().toString());
