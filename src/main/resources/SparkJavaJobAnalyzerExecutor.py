@@ -134,7 +134,7 @@ def main(argv=None):
     
     '''STEP 3: Decide whether or not to execute the lambda pushdown'''
     '''TODO: This will be the second phase'''
-    pushdown = False
+    pushdown = True
     jobToCompile = originalJobCode
     
     '''STEP 4: Set the lambdas in the storlet if necessary'''

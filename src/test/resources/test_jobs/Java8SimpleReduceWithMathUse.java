@@ -1,6 +1,7 @@
 package test.resources.test_jobs;
 
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
@@ -16,7 +17,7 @@ public class Java8SimpleReduceWithMathUse implements TestTask{
 			//FIXME: Now we only support reduce->optional version
 			int countLines = myStream.filter(s -> s.contains("Hamlet"))
 								 .map(l -> l.length())
-								 .reduce((a, b) -> a*b).get();
+								 .reduce((a, b) -> (Integer) Math.max(a, b)).get();
 			builder.append(countLines);
 			myStream.close();
 		} catch (IOException e) {

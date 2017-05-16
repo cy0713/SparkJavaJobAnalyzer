@@ -16,16 +16,20 @@ public class SparkStreamingWordCount {
 
 	    SparkConf sparkConf = new SparkConf().setAppName("SparkJavaStreamingWordCount");
 	    // Create the context with 2 seconds batch size
-	    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(2000));
+	    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(5000));
 
-	    JavaDStream<String> text = jssc.textFileStream("swift2d://data1.lvm/hamlet.txt");
+	    JavaDStream<String> text = jssc.textFileStream("swift2d://data1.lvm/*");
 	    JavaPairDStream<String, Integer> wordCounts = text
 	    		.flatMap(x -> Arrays.asList(x.split(" ")).iterator())
 	    		.map(word -> word.replaceAll("[^a-zA-Z]", "").toLowerCase().trim())
 	    		.mapToPair(word -> new Tuple2<String, Integer>(word, 1))
 	    		.reduceByKey((a, b) -> a + b);
 
+
+	    //wordCounts.dstream().saveAsTextFiles("/home/user/Desktop/results/", ".txt");	
 	    wordCounts.print();
+	    
+	    
 	    jssc.start();
 	    jssc.awaitTermination();
 	}
