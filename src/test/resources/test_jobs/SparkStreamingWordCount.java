@@ -19,11 +19,11 @@ public class SparkStreamingWordCount {
 	    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(2000));
 
 	    JavaDStream<String> text = jssc.textFileStream("swift2d://data1.lvm/hamlet.txt");
-
-	    JavaPairDStream<String, Integer> wordCounts = text.flatMap(x -> Arrays.asList(x.split(" ")).iterator())
-	    												  .map(word -> word.replaceAll("[^a-zA-Z]", "").toLowerCase().trim())
-	    												  .mapToPair(s -> new Tuple2<String, Integer>(s, 1))
-	    												  .reduceByKey((i1, i2) -> i1 + i2);
+	    JavaPairDStream<String, Integer> wordCounts = text
+	    		.flatMap(x -> Arrays.asList(x.split(" ")).iterator())
+	    		.map(word -> word.replaceAll("[^a-zA-Z]", "").toLowerCase().trim())
+	    		.mapToPair(word -> new Tuple2<String, Integer>(word, 1))
+	    		.reduceByKey((a, b) -> a + b);
 
 	    wordCounts.print();
 	    jssc.start();

@@ -130,7 +130,7 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 
 	public String getLambdaTypeFromNode(Node n) {
 		if (javaParserFacade==null) return "";
-		Type type = javaParserFacade.getType(n, true);
+		Type type = javaParserFacade.getType(n);
 		//Clean the raw input information coming from JSS
 		String typeString = type.describe().replace(" ? extends ? super ", "")	
 										   .replace("? super ", "")
