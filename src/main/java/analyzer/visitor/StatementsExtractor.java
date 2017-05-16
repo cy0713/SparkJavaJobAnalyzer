@@ -65,12 +65,13 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		
 		//Leave only the expression that is interesting to us, on the stream variable. We need this
 		//as the expression can be within a System.out.print() method, for example
+		//FIXME: This doesn't work with nested expressions like System.out.println(">>>>>>>>>>>>>>" + lines.count())
 		Expression innerLambdaCall = null;
-		boolean foundCorrectExpression = methodExpression.toString().startsWith(streamKeyString);
-		int expressionIndex = 0;
-		while (!foundCorrectExpression){
-			innerLambdaCall = methodExpression.getArgument(expressionIndex);
-			foundCorrectExpression = innerLambdaCall.toString().startsWith(streamKeyString);
+		for (Expression exp: methodExpression.getArguments()){
+			if (exp.toString().startsWith(streamKeyString)){
+				innerLambdaCall = exp;
+				break;
+			}
 		}
 
 		//Find the lambdas in the (hopefully) clean expression
