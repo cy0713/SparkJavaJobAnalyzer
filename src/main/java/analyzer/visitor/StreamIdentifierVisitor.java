@@ -21,10 +21,13 @@ import main.java.graph.FlowControlGraph;
 public class StreamIdentifierVisitor extends ModifierVisitor<Void> {
 	
 	public Pattern datasetsPattern;
+	public Pattern datasetsParameterizedPattern;
 	public Map<String, FlowControlGraph> identifiedStreams;
 	
 	public StreamIdentifierVisitor(String targetedDatasets, Map<String, FlowControlGraph> identifiedStreams) {
 		this.datasetsPattern = Pattern.compile(targetedDatasets);
+		this.datasetsParameterizedPattern = Pattern.compile(targetedDatasets
+				.replace("|", "<|").replaceFirst("\\)", "<\\)"));
 		this.identifiedStreams = identifiedStreams;
 	}
 
@@ -32,9 +35,10 @@ public class StreamIdentifierVisitor extends ModifierVisitor<Void> {
     public Node visit(VariableDeclarator declarator, Void args) {	
 		//FIXME: Limitation here, we need a variable declared to find it, so this
 		//does not work with an anonymous declaration like createStream().stream().lambdas...
-		Matcher matcher = datasetsPattern.matcher(declarator.getType().toString());
+		Matcher matcherSimple = datasetsPattern.matcher(declarator.getType().toString());
+		Matcher matcherParameterized = datasetsParameterizedPattern.matcher(declarator.getType().toString());
 		//Check if we found and in memory data structure like an RDD
-     	if (matcher.matches()){
+     	if (matcherSimple.matches() || matcherParameterized.lookingAt()){
      		String streamVariable = declarator.getChildNodes().get(0).toString();
      		FlowControlGraph graph = new FlowControlGraph(streamVariable);
      		graph.setType(declarator.getType().toString());

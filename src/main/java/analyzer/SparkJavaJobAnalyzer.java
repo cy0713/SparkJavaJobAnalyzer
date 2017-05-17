@@ -11,6 +11,7 @@ import org.json.simple.JSONObject;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.comments.Comment;
 
 import main.java.analyzer.visitor.StatementsExtractor;
 import main.java.analyzer.visitor.StreamIdentifierVisitor;
@@ -25,10 +26,10 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 
 	protected final String jobType = "sparkjava";
 
-	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD|DStream|JavaDStream|JavaPairDStream)"
-			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
+	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD|DStream|JavaDStream|JavaPairDStream)\\s*";
+			//+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce)";
+	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce|distinct)";
 	protected final String pushableActions = "(collect|count|iterator|foreach)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
@@ -48,9 +49,13 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 		
 		//Parse the job file
         CompilationUnit cu = JavaParser.parse(in); 
+        for (Comment comment: cu.getAllContainedComments()){
+        	System.out.println("Removing: " + comment.toString());
+        	comment.remove();
+        }
         
         //Keep the original job code if we cannot execute lambdas due to resource constraints
-        String originalJobCode = cu.toString();
+        String originalJobCode = Utils.stripSpace(cu.toString());
         String translatedJobCode = originalJobCode;
         
         //First, get all the variables of type Stream, as they are the candidates to push down lambdas
@@ -71,13 +76,18 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         	FlowControlGraph graph = identifiedStreams.get(key);  
         	//Instantiate the class and execute the translation to Java8 streams
 			SparkDatasetTranslation datasetTranslator = new RDDTranslator();
-			translatedJobCode = datasetTranslator.applyDatasetTranslation(graph.getRdd(), 
-					graph.getType(), translatedJobCode);
-			translatedJobCode = translatedJobCode.replace("scala.Tuple2", "java.util.AbstractMap.SimpleEntry");
+			translatedJobCode = datasetTranslator.applyDatasetTranslation(
+				graph.getRdd(), graph.getType(), translatedJobCode);
         	//Perform the translation for each of the lambdas of the dataset
         	for (GraphNode node: identifiedStreams.get(key)){
         		//Modify the original's job code according to translation rules
+        		/*System.out.println("---------SIGNATURE--------------");
+        		System.out.println(node.getLambdaSignature());
+        		System.out.println("---------REPLACEMENT--------------");
+        		System.out.println(node.getCodeReplacement());
+        		System.out.println("---------CODE--------------");*/
     			translatedJobCode = translatedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
+        		//System.out.println(translatedJobCode);
            	}
         }  
         	
@@ -91,6 +101,7 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 			e.printStackTrace();
 		}
         System.out.println(translatedJobCode);
+        
         
         //Execute the JavaStreams analyzer on the translated job
         JavaStreamsJobAnalyzer javaStreamsAnalyzer = new JavaStreamsJobAnalyzer();

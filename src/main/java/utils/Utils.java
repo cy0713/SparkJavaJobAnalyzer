@@ -3,6 +3,7 @@ package main.java.utils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.AbstractMap.SimpleEntry;
 
 import org.json.simple.JSONArray;
@@ -87,4 +88,24 @@ public class Utils {
 	public static String getModifiedJobCode(JSONObject json){
 		return (String) json.get("pushdown-job-code");
 	}
+	
+	//TODO: Modify this to do not work when spaces are within string literals
+	public static String stripSpace(String string) {
+        StringBuilder result = new StringBuilder();
+        boolean lastWasSpace = true;
+        for (int i = 0; i < string.length(); i++) {
+            char c = string.charAt(i);
+            if (Character.isWhitespace(c)) {
+                if (!lastWasSpace) {
+                    result.append(' ');
+                }
+                lastWasSpace = true;
+            } else {
+                result.append(c);
+                lastWasSpace = false;
+            }
+        }
+        return result.toString().trim();
+    }	
+	
 }

@@ -1,11 +1,15 @@
 package main.java.analyzer.visitor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.Expression;
@@ -16,6 +20,7 @@ import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
 import com.github.javaparser.symbolsolver.model.typesystem.Type;
 
 import main.java.graph.FlowControlGraph;
+import main.java.utils.Utils;
 
 /**
  * This class performs the actual work of extracting the lambdas and operations
@@ -65,31 +70,15 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		
 		//Leave only the expression that is interesting to us, on the stream variable. We need this
 		//as the expression can be within a System.out.print() method, for example
-		//FIXME: This doesn't work with nested expressions like System.out.println(">>>>>>>>>>>>>>" + lines.count())
-		Expression innerLambdaCall = null;
-		for (Expression exp: methodExpression.getArguments()){
-			if (exp.toString().startsWith(streamKeyString)){
-				innerLambdaCall = exp;
-				break;
-			}
-		}
-
-		//Find the lambdas in the (hopefully) clean expression
-		List<Node> lambdas = new LinkedList<>();			
-		String expressionString = "";
-		if (innerLambdaCall != null){
-			innerLambdaCall.accept(new LambdaExtractor(), lambdas);				
-			expressionString = innerLambdaCall.toString();
-		}else{
-			methodExpression.accept(new LambdaExtractor(), lambdas);
-			expressionString = methodExpression.toString();
-		}			
+		List<Node> lambdas = new LinkedList<>();				
+		String expressionString = getExpressionAndPopulateLambdas(methodExpression, streamKeyString, lambdas);
+		
 		//Store the lambdas in the correct order, as they are executed
 		Collections.reverse(lambdas);
 		
 		//Get the entire intermediate lambda functions that can be pushed down
 		int lastLambdaIndex = expressionString.indexOf(".");
-		for (Node n: lambdas){    		
+		for (Node n: lambdas){    					
 			System.out.println("Processing transformation: " + n);				
 			Pattern pattern = Pattern.compile("\\." + pushableTransformations + 
 								"+\\(?\\S+" + Pattern.quote(n.toString()) + "\\)");
@@ -100,16 +89,16 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
         		break;
         	}
 	        String matchedLambda = expressionString.substring(matcher.start()+1, matcher.end());
+	        //Delete useless white spaces that mess string comparisons
+	        matchedLambda = Utils.stripSpace(matchedLambda);
 			//Take advantage of this pass to try to infer the types of the lambdas
 			//Anyway, this will require a further process later on	
 			String lambdaType = getLambdaTypeFromNode(n);		
-	        //We are treating reduce operations as final operations, but we need to know the types of inner lambdas
-	        if (matchedLambda.startsWith("reduce")){
-	        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
-	        } else identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
+			//Add the lambda to the graph, as well as potential non-lambda method calls before it
+			addLambdaToGraph(streamKeyString, n, matchedLambda, lambdaType);
 	        lastLambdaIndex = matcher.end();
 		}			
-
+				
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
 		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
 		//We enable only a single collector in the expression, if it does exist
@@ -121,10 +110,8 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 				if (expressionString.charAt(pos)==')') openBr--;
 				pos++;
 			}
-			String matchedAction = expressionString.substring(lastLambdaIndex+1, pos);
-			lastLambdaIndex = pos;
-			//At the moment, we do not need to know the collector type parameterization
-			identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, "Collector", true);
+			String matchedAction = expressionString.substring(lastLambdaIndex+1, pos);	
+			addActionToGraph(matchedAction, streamKeyString);
 		}
 	}
 
@@ -139,6 +126,82 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		System.out.println("Type found by JSS: " + typeString);
 		return typeString;
 	}     	
+	
+	private void addActionToGraph(String matchedAction, String streamKeyString){
+		Pattern p = Pattern.compile("(distinct|limit)");
+		matchedAction = Arrays.asList(matchedAction.split("\\."))
+								.stream()
+								.map(a -> {
+							    	   if (p.matcher(a).lookingAt()) {
+								    	   identifiedStreams.get(streamKeyString)
+										   .appendOperationToRDD(a, "None<>", false);
+								    	   return "";
+							    	   }else return a + ".";
+								   }
+						       ).collect(Collectors.joining());
+		//Remove last dot
+		matchedAction = matchedAction.substring(0, matchedAction.length()-1);
+		//At the moment, we do not need to know the collector type parameterization
+		identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, "Collector", true);
+	}
+	
+	private void addLambdaToGraph(String streamKeyString, Node expNode, String matchedLambda, String lambdaType) {	
+		//First, add potential non-lambda transformations on the stream (i.e., distinct, limit)
+		List<String> nonLambdaTrans = getNonLambdaTrans(expNode);
+		for (String trans: nonLambdaTrans){
+			//TODO: Fix this with a proper type for non lambda trans
+			matchedLambda = matchedLambda.replace(trans + ".", "");
+			identifiedStreams.get(streamKeyString).appendOperationToRDD(trans, "None<>", false);
+		}
+        //We are treating reduce operations as final operations, but we need to know the types of inner lambdas
+        if (matchedLambda.startsWith("reduce")){
+        	identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, true);
+        } else identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedLambda, lambdaType, false);
+		
+	}
+
+	private List<String> getNonLambdaTrans(Node expNode) {
+		List<String> result = new ArrayList<>();
+		getNonLambdaTrans((Node) expNode.getParentNode().get(), result);
+		return result;
+	}
+
+	private List<String> getNonLambdaTrans(Node expNode, List<String> result) {
+		if (!expNode.getChildNodes().isEmpty()){
+			for (Node child: expNode.getChildNodes())
+				getNonLambdaTrans(child, result);
+			return result;
+		} else {
+			//FIXME: Put this literal in an appropriate place
+			Matcher matcher = Pattern.compile("(distinct|limit)").matcher(expNode.toString());
+			if (matcher.matches()) {
+				result.add(expNode.toString() + "()");
+			}
+			return result;
+		}
+	}
+
+	//FIXME: This doesn't work with nested expressions like System.out.println(">>>>>>>>>>>>>>" + lines.count())
+	private String getExpressionAndPopulateLambdas(MethodCallExpr methodExpression, 
+							String streamKeyString, List<Node> lambdas){		
+		Expression innerLambdaCall = null;
+		for (Expression exp: methodExpression.getArguments()){
+			if (exp.toString().startsWith(streamKeyString)){
+				innerLambdaCall = exp;
+				break;
+			}
+		}
+		//Find the lambdas in the (hopefully) clean expression
+		String expressionString = "";
+		if (innerLambdaCall != null){
+			innerLambdaCall.accept(new LambdaExtractor(), lambdas);				
+			expressionString = innerLambdaCall.toString();
+		}else{
+			methodExpression.accept(new LambdaExtractor(), lambdas);
+			expressionString = methodExpression.toString();
+		}		
+		return expressionString;
+	}
 	
 	/**
 	 * This class is intended to visit all the lambda functions of a code file.

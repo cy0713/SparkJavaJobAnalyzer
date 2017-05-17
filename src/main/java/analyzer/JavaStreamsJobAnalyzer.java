@@ -12,6 +12,7 @@ import org.json.simple.JSONObject;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
@@ -47,11 +48,11 @@ public class JavaStreamsJobAnalyzer {
 	
 	protected HashMap<String, FlowControlGraph> identifiedStreams = new HashMap<String, FlowControlGraph>();
 	
-	protected static String targetedDatasets = "(Stream)"
-			+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
+	protected static String targetedDatasets = "(Stream)\\s*";
+			//+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
 	/* These are the operation that we currently can detect/migrate */
-	protected final static String pushableTransformations = "(map|filter|flatMap|reduce)";
+	protected final static String pushableTransformations = "(map|filter|flatMap|reduce|distinct)";
 	protected final static String pushableActions = "(collect|count|iterator|forEach)";	
 	
 	protected final String migrationRulesPackage = "main.java.rules.migration." + jobType + ".";
@@ -77,6 +78,10 @@ public class JavaStreamsJobAnalyzer {
 		
 		//Parse the job file
         CompilationUnit cu = JavaParser.parse(in); 
+        for (Comment comment: cu.getAllContainedComments()){
+        	System.out.println("Removing: " + comment.toString());
+        	comment.remove();
+        }
         
         //Keep the original job code if we cannot execute lambdas due to resource constraints
         String originalJobCode = cu.toString();

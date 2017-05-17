@@ -27,6 +27,7 @@ public class RDDTranslator implements SparkDatasetTranslation {
 					  "java.util.stream.Stream;\nimport java.util.Map;\n"
 					+ "import java.util.AbstractMap.SimpleEntry;\n");
 		}
+		jobCode = jobCode.replace("scala.Tuple2", "java.util.AbstractMap.SimpleEntry");
 		return jobCode.replaceAll(datasetType + "\\s*" + datasetName, newDataseType + " " + datasetName);
 	}
 }
