@@ -29,8 +29,8 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 	protected static String targetedDatasets = "(RDD|JavaRDD|JavaPairRDD|DStream|JavaDStream|JavaPairDStream)\\s*";
 			//+ "(\\s*?(<\\s*?\\w*\\s*?(,\\s*?\\w*\\s*?)?\\s*?>))?"; //\\s*?\\w*\\s*?=";
 	
-	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce|distinct)";
-	protected final String pushableActions = "(collect|count|iterator|foreach)";
+	protected final String pushableTransformations = "(map|filter|flatMap|mapToPair|reduceByKey|reduce|distinct|groupByKey)";
+	protected final String pushableActions = "(collect|count|iterator|foreach|cache)";
 	
 	protected final String translationRulesPackage = "main.java.rules.translation." + jobType  + ".";
 	protected final String reverseRulesPackage = "main.java.rules.reverse." + jobType  + ".";
@@ -49,11 +49,9 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
 		
 		//Parse the job file
         CompilationUnit cu = JavaParser.parse(in); 
-        for (Comment comment: cu.getAllContainedComments()){
-        	System.out.println("Removing: " + comment.toString());
+        for (Comment comment: cu.getAllContainedComments())
         	comment.remove();
-        }
-        
+                
         //Keep the original job code if we cannot execute lambdas due to resource constraints
         String originalJobCode = Utils.stripSpace(cu.toString());
         String translatedJobCode = originalJobCode;
@@ -81,13 +79,10 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         	//Perform the translation for each of the lambdas of the dataset
         	for (GraphNode node: identifiedStreams.get(key)){
         		//Modify the original's job code according to translation rules
-        		/*System.out.println("---------SIGNATURE--------------");
-        		System.out.println(node.getLambdaSignature());
-        		System.out.println("---------REPLACEMENT--------------");
-        		System.out.println(node.getCodeReplacement());
-        		System.out.println("---------CODE--------------");*/
-    			translatedJobCode = translatedJobCode.replace(node.getLambdaSignature(), node.getCodeReplacement());
-        		//System.out.println(translatedJobCode);
+        		String replacement = "";
+        		if(!node.getCodeReplacement().equals("")) 
+        			replacement = "." + node.getCodeReplacement();
+    			translatedJobCode = translatedJobCode.replace("." + node.getLambdaSignature(), replacement);
            	}
         }  
         	
@@ -100,8 +95,9 @@ public class SparkJavaJobAnalyzer extends JavaStreamsJobAnalyzer {
         } catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-        System.out.println(translatedJobCode);
-        
+        System.out.println("-------------------");
+        System.out.println(translatedJobCode.replace("; ", ";\n").replace("{", "{\n"));
+        System.out.println("-------------------");
         
         //Execute the JavaStreams analyzer on the translated job
         JavaStreamsJobAnalyzer javaStreamsAnalyzer = new JavaStreamsJobAnalyzer();

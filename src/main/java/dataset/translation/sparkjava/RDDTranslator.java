@@ -20,7 +20,7 @@ public class RDDTranslator implements SparkDatasetTranslation {
 		//Change the type declaration of the variable		
 		String newDataseType = datasetType.replace(mainType, streamType);
 		//There is no equivalent of JavaPairRDD in Streams. We assume that a JavaPairRDD
-		//comes after a mapToPair or map function and it represents a Map of tupes in Java8
+		//comes after a mapToPair or map function and it represents a Map of tuples in Java8
 		if (mainType.equals("JavaPairRDD") || mainType.equals("JavaPairDStream")){
 			newDataseType = newDataseType.replace("Stream<", "Map<");
 			jobCode = jobCode.replaceFirst("java.util.stream.Stream;", 
@@ -28,6 +28,7 @@ public class RDDTranslator implements SparkDatasetTranslation {
 					+ "import java.util.AbstractMap.SimpleEntry;\n");
 		}
 		jobCode = jobCode.replace("scala.Tuple2", "java.util.AbstractMap.SimpleEntry");
+		jobCode = jobCode.replace("Iterable", "List");
 		return jobCode.replaceAll(datasetType + "\\s*" + datasetName, newDataseType + " " + datasetName);
 	}
 }

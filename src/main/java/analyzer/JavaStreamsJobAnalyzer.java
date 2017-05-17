@@ -78,10 +78,8 @@ public class JavaStreamsJobAnalyzer {
 		
 		//Parse the job file
         CompilationUnit cu = JavaParser.parse(in); 
-        for (Comment comment: cu.getAllContainedComments()){
-        	System.out.println("Removing: " + comment.toString());
+        for (Comment comment: cu.getAllContainedComments())
         	comment.remove();
-        }
         
         //Keep the original job code if we cannot execute lambdas due to resource constraints
         String originalJobCode = cu.toString();

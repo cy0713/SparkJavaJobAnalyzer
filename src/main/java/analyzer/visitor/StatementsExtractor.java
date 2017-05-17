@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.Expression;
@@ -93,12 +92,16 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	        matchedLambda = Utils.stripSpace(matchedLambda);
 			//Take advantage of this pass to try to infer the types of the lambdas
 			//Anyway, this will require a further process later on	
-			String lambdaType = getLambdaTypeFromNode(n);		
+	        //FIXME: This should be solved by JSS guys
+	        //String lambdaType = "java.util.function.Function<java.lang.String, "
+	        //		+ "java.util.AbstractMap.SimpleEntry<java.lang.String, java.lang.String>>";
+
+	        String lambdaType = getLambdaTypeFromNode(n);
 			//Add the lambda to the graph, as well as potential non-lambda method calls before it
 			addLambdaToGraph(streamKeyString, n, matchedLambda, lambdaType);
 	        lastLambdaIndex = matcher.end();
 		}			
-				
+		//FIXME: In the case of a line with a lambda + no lambda trans and no action this will not work!		
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
 		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
 		//We enable only a single collector in the expression, if it does exist
@@ -128,7 +131,8 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	}     	
 	
 	private void addActionToGraph(String matchedAction, String streamKeyString){
-		Pattern p = Pattern.compile("(distinct|limit)");
+		System.out.println("**********" + matchedAction);
+		Pattern p = Pattern.compile("(distinct|groupByKey|limit)");
 		matchedAction = Arrays.asList(matchedAction.split("\\."))
 								.stream()
 								.map(a -> {
@@ -173,7 +177,7 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 			return result;
 		} else {
 			//FIXME: Put this literal in an appropriate place
-			Matcher matcher = Pattern.compile("(distinct|limit)").matcher(expNode.toString());
+			Matcher matcher = Pattern.compile("(distinct|groupByKey|limit)").matcher(expNode.toString());
 			if (matcher.matches()) {
 				result.add(expNode.toString() + "()");
 			}
