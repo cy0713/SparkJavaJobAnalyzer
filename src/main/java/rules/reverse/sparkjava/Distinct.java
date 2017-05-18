@@ -7,7 +7,7 @@ public class Distinct implements LambdaRule {
 
 	@Override
 	public void applyRule(GraphNode graphNode) {
-		graphNode.setCodeReplacement("");
+		graphNode.setCodeReplacement(graphNode.getLambdaSignature());
 	}
 
 }
