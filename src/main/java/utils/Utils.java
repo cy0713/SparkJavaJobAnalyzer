@@ -15,6 +15,7 @@ public class Utils {
 	//TODO: There is a problem using "," when passing lambdas as Storlet parameters, as the
 	//Storlet middleware treats every "," as a separation between key/value parameter pairs
 	static final String COMMA_REPLACEMENT_IN_PARAMS = "'";
+	static final String EQUAL_REPLACEMENT_IN_PARAMS = "$";
 	
 	/**
 	 * This method scans a String to extract P1 and P2 from inputs like xxx<P1, P2>xxx 
@@ -59,7 +60,8 @@ public class Utils {
 			//TODO: The comma replacement is needed as the "," character is reserved in the
 			//Storlet middleware to separate key/value pairs
 			String lambdaSignature = (lambda.getValue() + LAMBDA_TYPE_AND_BODY_SEPARATOR 
-					+ lambda.getKey()).replace(",", COMMA_REPLACEMENT_IN_PARAMS);
+					+ lambda.getKey()).replace(",", COMMA_REPLACEMENT_IN_PARAMS)
+									  .replace("=", EQUAL_REPLACEMENT_IN_PARAMS);
 			System.err.println(lambdaSignature);
 			lambdaObj.put("lambda-type-and-body", lambdaSignature);
 			jsonArray.add(lambdaObj); 
@@ -77,7 +79,8 @@ public class Utils {
 		Iterator<JSONObject> it = jsonArray.listIterator();
 		while (it.hasNext()){
 			String lambdaSignature = (String) it.next().get("lambda-type-and-body");
-			lambdaSignature = lambdaSignature.replace(COMMA_REPLACEMENT_IN_PARAMS, ",");
+			lambdaSignature = lambdaSignature.replace(COMMA_REPLACEMENT_IN_PARAMS, ",")
+											 .replace(EQUAL_REPLACEMENT_IN_PARAMS, "=");
 			lambdasToMigrate.add(new SimpleEntry<String, String>(
 					lambdaSignature.substring(lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR)+1),
 					lambdaSignature.substring(0, lambdaSignature.indexOf(LAMBDA_TYPE_AND_BODY_SEPARATOR))));
@@ -106,6 +109,5 @@ public class Utils {
             }
         }
         return result.toString().trim();
-    }	
-	
+    }		
 }
