@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.Expression;
@@ -91,22 +90,31 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	        //Delete useless white spaces that mess string comparisons
 	        matchedLambda = Utils.stripSpace(matchedLambda);
 			//Take advantage of this pass to try to infer the types of the lambdas
-			//Anyway, this will require a further process later on	
-	        //FIXME: This should be solved by JSS guys
-	        //String lambdaType = "java.util.function.Function<java.lang.String, "
-	        //		+ "java.util.AbstractMap.SimpleEntry<java.lang.String, java.lang.String>>";
-
 	        String lambdaType = getLambdaTypeFromNode(n);
 			//Add the lambda to the graph, as well as potential non-lambda method calls before it
 			addLambdaToGraph(streamKeyString, n, matchedLambda, lambdaType);
 	        lastLambdaIndex = matcher.end();
-		}			
-		//FIXME: In the case of a line with a lambda + no lambda trans and no action this will not work!		
+		}	
+		//Check if there are more operations to process
+		if (!expressionString.substring(lastLambdaIndex).contains(".")) return;
+		
+		//lastLambdaIndex++;
+		//Get the non-lambda transformations between the lambdas and the terminal action
+		Pattern p = Pattern.compile("(distinct|groupByKey|limit)");		
+		for (String trans: Arrays.asList(expressionString.substring(lastLambdaIndex+1).split("\\."))){
+			 if (p.matcher(trans).lookingAt()) {
+				 identifiedStreams.get(streamKeyString).appendOperationToRDD(trans, "None<>", false);
+				 System.out.println(">>ADDING: " + trans);
+				 lastLambdaIndex+=trans.length();
+			 }else break;
+		}
+		
+		//Get the first (and last) terminal action
 		Pattern pattern = Pattern.compile("\\." + pushableActions);
-		Matcher matcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
+		Matcher actionMatcher = pattern.matcher(expressionString.substring(lastLambdaIndex));
 		//We enable only a single collector in the expression, if it does exist
-		if (matcher.find()){
-			int pos = lastLambdaIndex+matcher.end()+1;
+		if (actionMatcher.find()){
+			int pos = lastLambdaIndex+actionMatcher.end()+1;
 			int openBr = 1;
 			while (openBr!=0) {
 				if (expressionString.charAt(pos)=='(') openBr++;
@@ -131,20 +139,6 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 	}     	
 	
 	private void addActionToGraph(String matchedAction, String streamKeyString){
-		System.out.println("**********" + matchedAction);
-		Pattern p = Pattern.compile("(distinct|groupByKey|limit)");
-		matchedAction = Arrays.asList(matchedAction.split("\\."))
-								.stream()
-								.map(a -> {
-							    	   if (p.matcher(a).lookingAt()) {
-								    	   identifiedStreams.get(streamKeyString)
-										   .appendOperationToRDD(a, "None<>", false);
-								    	   return "";
-							    	   }else return a + ".";
-								   }
-						       ).collect(Collectors.joining());
-		//Remove last dot
-		matchedAction = matchedAction.substring(0, matchedAction.length()-1);
 		//At the moment, we do not need to know the collector type parameterization
 		identifiedStreams.get(streamKeyString).appendOperationToRDD(matchedAction, "Collector", true);
 	}
@@ -153,7 +147,7 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		//First, add potential non-lambda transformations on the stream (i.e., distinct, limit)
 		List<String> nonLambdaTrans = getNonLambdaTrans(expNode);
 		for (String trans: nonLambdaTrans){
-			//TODO: Fix this with a proper type for non lambda trans
+			//TODO: Fix this with a proper type for non lambda trans?
 			matchedLambda = matchedLambda.replace(trans + ".", "");
 			identifiedStreams.get(streamKeyString).appendOperationToRDD(trans, "None<>", false);
 		}
