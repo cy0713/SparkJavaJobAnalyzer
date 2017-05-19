@@ -100,12 +100,13 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		
 		//lastLambdaIndex++;
 		//Get the non-lambda transformations between the lambdas and the terminal action
-		Pattern p = Pattern.compile("(distinct|groupByKey|limit)");		
+		Pattern p = Pattern.compile("(distinct\\(\\)|groupByKey\\(\\)|limit\\(\\w\\))");		
 		for (String trans: Arrays.asList(expressionString.substring(lastLambdaIndex+1).split("\\."))){
-			 if (p.matcher(trans).lookingAt()) {
+			 Matcher matcher = p.matcher(trans);
+			 if (matcher.lookingAt()) {
 				 identifiedStreams.get(streamKeyString).appendOperationToRDD(trans, "None<>", false);
 				 System.out.println(">>ADDING: " + trans);
-				 lastLambdaIndex+=trans.length();
+				 lastLambdaIndex += matcher.end()+1;
 			 }else break;
 		}
 		
