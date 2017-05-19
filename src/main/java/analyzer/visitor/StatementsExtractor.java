@@ -98,8 +98,8 @@ public class StatementsExtractor extends VoidVisitorAdapter<Object> {
 		//Check if there are more operations to process
 		if (!expressionString.substring(lastLambdaIndex).contains(".")) return;
 		
-		//lastLambdaIndex++;
 		//Get the non-lambda transformations between the lambdas and the terminal action
+		//FIXME: Put this literal in an appropriate place
 		Pattern p = Pattern.compile("(distinct\\(\\)|groupByKey\\(\\)|limit\\(\\w\\))");		
 		for (String trans: Arrays.asList(expressionString.substring(lastLambdaIndex+1).split("\\."))){
 			 Matcher matcher = p.matcher(trans);
