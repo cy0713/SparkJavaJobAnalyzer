@@ -17,7 +17,7 @@ public class Java8SimpleReduceWithMathUse implements TestTask{
 			//FIXME: Now we only support reduce->optional version
 			int countLines = myStream.filter(s -> s.contains("Hamlet"))
 								 .map(l -> l.length())
-								 .reduce((a, b) -> (Integer) Math.max(a, b)).get();
+								 .reduce((a, b) -> Math.max(a, b)).get();
 			builder.append(countLines);
 			myStream.close();
 		} catch (IOException e) {

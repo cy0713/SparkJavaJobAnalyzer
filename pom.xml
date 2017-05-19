@@ -11,21 +11,6 @@
  	</properties>
 
 	<dependencies>
-		<!-- JavaParser dependencies -->
-		<!-- https://mvnrepository.com/artifact/com.github.javaparser/javaparser-core -->
-		<dependency>
-		    <groupId>com.github.javaparser</groupId>
-		    <artifactId>javaparser-core</artifactId>
-		    <version>3.2.4</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/com.github.javaparser/javaparser-core-generators -->
-		<dependency>
-		    <groupId>com.github.javaparser</groupId>
-		    <artifactId>javaparser-core-generators</artifactId>
-		    <version>3.2.4</version>
-		</dependency>
-
 
 		<!-- JavaSymbolResolver dependencies -->
 		<!-- https://mvnrepository.com/artifact/com.github.javaparser/java-symbol-solver-core -->
@@ -43,7 +28,6 @@
 		    <version>0.5.4</version>
 		</dependency>
 
-
 		<!-- https://mvnrepository.com/artifact/com.github.javaparser/java-symbol-solver-logic -->
 		<dependency>
 		    <groupId>com.github.javaparser</groupId>
@@ -51,7 +35,6 @@
 		    <version>0.5.4</version>
 		</dependency>
  
-
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
 			<artifactId>json-simple</artifactId>
@@ -98,8 +81,7 @@
 		    <groupId>org.apache.spark</groupId>
 		    <artifactId>spark-sql_2.11</artifactId>
 		    <version>2.1.1</version>
-		</dependency>
-		
+		</dependency>	
 		
 	
 		<!-- https://mvnrepository.com/artifact/org.scala-lang/scala-library -->

@@ -1,7 +1,5 @@
 package test.resources.test_jobs;
 
-import java.util.Arrays;
-
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -13,9 +11,7 @@ public class SparkJavaSimpleTextAnalysis2 {
 		SparkConf conf = new SparkConf().setAppName("SimpleTextAnalysisSparkJava");
 		JavaSparkContext sc = new JavaSparkContext(conf);
 		JavaRDD<String> distFile = sc.textFile("swift2d://data1.lvm/hamlet.txt");
-		//Does not work with length due to JSS 
-		//distFile.map(s -> s.split(" ").length).reduce((a, b) -> a + b);	
-		distFile.map(s -> Arrays.asList(s.split(" ")).size()).reduce((a, b) -> a + b);		
+		distFile.map(s -> s.split(" ").length).reduce((a, b) -> a + b);		
 	}
 
 }
