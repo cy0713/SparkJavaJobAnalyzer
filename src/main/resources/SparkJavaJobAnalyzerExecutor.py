@@ -24,7 +24,7 @@ TENANT='crystaltest'
 EXECUTOR_LOCATION = '/home/user/Desktop/'
 JAVAC_PATH = '/usr/bin/javac'
 SPARK_FOLDER = '/home/user/workspace/spark-2.1.0-bin-hadoop2.7/'
-SPARK_LIBS_LOCATION = SPARK_FOLDER + '/jars/'
+SPARK_LIBS_LOCATION = SPARK_FOLDER + 'jars/'
 LAMBDA_PUSHDOWN_FILTER = 'lambdapushdown-1.0.jar'
 
 valid_token = None
@@ -124,6 +124,8 @@ def main(argv=None):
     '''STEP 1: Execute the JobAnalyzer'''
     job_analyzer = argv[1]
     spark_job_path = argv[2]
+    other_args = argv[3:]
+    
     spark_job_name = spark_job_path[spark_job_path.rfind('/')+1:spark_job_path.rfind('.')]
     jsonObject = executeJavaAnalyzer(job_analyzer, spark_job_path)
     
@@ -166,15 +168,16 @@ def main(argv=None):
     time.sleep(1)
     cmd = 'jar -cfe ' + EXECUTOR_LOCATION + 'SparkJobMigratory.jar ' + \
                        EXECUTOR_LOCATION.replace('/','.')[1:] + 'SparkJobMigratory ' + \
-                       EXECUTOR_LOCATION + 'SparkJobMigratory.class'
+                       EXECUTOR_LOCATION + 'SparkJobMigratory*.class'
     print cmd
     proc = subprocess.Popen(cmd, shell=True)
         
     print "Starting execution"
     '''STEP 7: Execute the job against Swift'''
-    cmd = 'bash ' + SPARK_FOLDER+ 'bin/spark-submit ' + \
-            EXECUTOR_LOCATION + 'SparkJobMigratory.jar --jars ' \
-                + SPARK_FOLDER + 'jars/*.jar'
+    cmd = 'bash ' + SPARK_FOLDER + 'bin/spark-submit ' + \
+            EXECUTOR_LOCATION + 'SparkJobMigratory.jar ' + ' '.join(other_args) +  \
+             ' --jars '   + SPARK_FOLDER + 'jars/*.jar'
+    print cmd
     proc = subprocess.Popen(cmd, shell=True)
     
     '''STEP 8: Clean files'''
